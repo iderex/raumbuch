@@ -13,6 +13,7 @@ This index lists every record. A record is present here or it is not landed.
 | [0003](0003-the-solution-record.md) | The solution record | Accepted |
 | [0005](0005-parameters-and-charts.md) | Parameters, strata and charts | Accepted |
 | [0006](0006-provenance-and-verification.md) | Provenance and verification | Accepted |
+| [0010](0010-simplification-and-canonicalisation.md) | Simplification and index canonicalisation | Accepted |
 
 Numbers are assigned when the decision is planned, so a gap in this table is a
 record that has not landed yet rather than one that was removed. Nothing is ever
