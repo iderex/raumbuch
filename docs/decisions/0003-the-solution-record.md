@@ -113,19 +113,25 @@ still leaves exactly one validator.
 
 ### The expression sub-language
 
-A metric component, a stress-energy component and a parameter range are all
-strings in one small expression sub-language. It admits integer and rational
-literals, identifiers, the operators `+ - * / ^`, parentheses, and a closed list
-of functions.
+A metric component, a stress-energy component, a coordinate range and a
+parameter range are all strings in one small expression sub-language. It admits
+integer and rational literals, identifiers, the operators `+ - * / ^`,
+parentheses, a closed list of functions and a closed list of named constants.
 
 An identifier must be one of the coordinates declared by the chart the
-expression sits in, or one of the parameters declared by the record. Anything
-else is refused by name, which is what stops a record smuggling in a symbol the
-reader cannot see the meaning of.
+expression sits in, one of the parameters declared by the record, or one of the
+named constants. Anything else is refused by name, which is what stops a record
+smuggling in a symbol the reader cannot see the meaning of.
 
-The closed function list and the full grammar are issue #40, and the arithmetic
-they are evaluated in is record 0009, issue #17. What this record fixes is that
-the list is closed and that the loader refuses an undeclared identifier.
+The named constants are needed by the first record written: a coordinate range
+of `theta < pi` uses one, and there is no chart to declare `pi` in. Keeping them
+a closed list rather than admitting free symbols is what keeps the refusal
+above meaningful.
+
+The closed function list, the closed constant list and the full grammar are
+issue #40, and the arithmetic they are evaluated in is record 0009, issue #17.
+What this record fixes is that both lists are closed and that the loader refuses
+an identifier that is in neither list and was not declared.
 
 Loading a record parses text into a syntax tree. It does not evaluate a string
 in any language, it does not hand record text to a computer algebra system's
