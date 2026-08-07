@@ -41,6 +41,13 @@ This block is the list itself and not a copy of it. The check asked for in
 issue #31 reads the required sections out of this fenced block, so there is one
 list and nothing to drift against.
 
+That check has to be aware of fenced code blocks in both directions, and this
+record is the reason. The block above contains lines beginning with `#` that are
+not headings of this document, and record 0003 contains a worked example in a
+format whose comments also begin with `#`. A checker that scans for headings
+line by line will read both as sections and refuse every record including this
+one. Sections are the headings outside fences.
+
 One further heading is allowed and is not required: `## Supersedes`, which only
 appears on a record that replaces an earlier one. Headings below `##` are free.
 
