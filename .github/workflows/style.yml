@@ -1,0 +1,56 @@
+name: style
+
+# Two checks with the names they keep, `format` and `lint`. Both are legs of the
+# gate verb and neither is implemented here: each job installs the project and
+# asks the verb for one leg, so what refuses on a runner is the same code that
+# refuses before a push.
+#
+# They are separate jobs because they are separate checks. A reader looking at a
+# pull request sees which of the two refused without opening a log, and entry 7
+# of issue #2, where the required checks of a merge are decided, is a decision
+# about names.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+# Read-only: both legs read the tree and write nothing to it.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  format:
+    name: format
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # No step pushes via git, so do not persist the GITHUB_TOKEN in .git/config.
+          persist-credentials: false
+      - name: Install the project and its development extra
+        # The version of the tool is not written here. It is declared in
+        # pyproject.toml and pinned by issue #27, so this workflow carries no
+        # version literal to drift from the pin.
+        run: python3 -m pip install --disable-pip-version-check -e ".[dev]"
+      - name: Run the format leg
+        run: python3 -m raumbuch gate --only format
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install the project and its development extra
+        run: python3 -m pip install --disable-pip-version-check -e ".[dev]"
+      - name: Run the lint leg
+        run: python3 -m raumbuch gate --only lint

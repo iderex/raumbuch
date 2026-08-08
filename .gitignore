@@ -1,6 +1,7 @@
 # Byte-compiled files and the caches the interpreter and the suite leave behind.
 __pycache__/
 *.py[cod]
+.ruff_cache/
 
 # Build and install artefacts of the package under src/.
 build/

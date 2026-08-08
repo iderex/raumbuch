@@ -19,7 +19,7 @@ from raumbuch import gate
 def parser() -> argparse.ArgumentParser:
     argument_parser = argparse.ArgumentParser(
         prog="raumbuch",
-        description="A verified catalogue of exact solutions, and the checks around it.",
+        description="A verified catalogue of exact solutions, and its checks.",
     )
     verbs = argument_parser.add_subparsers(dest="verb", required=True)
     gate_verb = verbs.add_parser(
@@ -32,11 +32,22 @@ def parser() -> argparse.ArgumentParser:
         default=Path("."),
         help="the checkout to judge, which defaults to the working directory",
     )
+    gate_verb.add_argument(
+        "--only",
+        action="append",
+        choices=[leg.name for leg in gate.LEGS],
+        metavar="LEG",
+        help=(
+            "run this leg alone, repeatable. A leg nobody asked for is still "
+            "reported, saying it was not asked for and what asking would cost, "
+            "so a limited run cannot be read as a whole one"
+        ),
+    )
     return argument_parser
 
 
 def main(argv: list[str] | None = None) -> int:
     arguments = parser().parse_args(argv)
     if arguments.verb == "gate":
-        return gate.main(arguments.root)
+        return gate.main(arguments.root, only=arguments.only)
     raise AssertionError(f"no such verb: {arguments.verb}")
