@@ -1,0 +1,8 @@
+#!/bin/sh
+# The gate is one verb of this project, and this hook execs it and nothing else.
+# A hook that grows a second line grows a second procedure, and the day it
+# disagrees with the workflow the disagreement is found by whoever is pushing.
+#
+# Installing this hook is optional and it is not the enforcement. CONTRIBUTING.md
+# says how to install it and what stands behind a merge instead.
+exec python3 -m raumbuch gate
