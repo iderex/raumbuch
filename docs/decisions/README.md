@@ -23,6 +23,7 @@ This index lists every record. A record is present here or it is not landed.
 | [0012](0012-determinism.md) | Determinism of a classification | Accepted |
 | [0013](0013-what-is-shared.md) | What is shared with findbuch, and where the boundary runs | Accepted |
 | [0014](0014-network-and-personal-data.md) | The network, and the personal data this project holds | Accepted |
+| [0015](0015-record-disagreements-resolved.md) | Where records 0003, 0005 and 0006 disagreed | Accepted |
 
 Numbers are assigned when the decision is planned, so a gap in this table is a
 record that has not landed yet rather than one that was removed. Nothing is ever

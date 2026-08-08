@@ -15,6 +15,7 @@
     "signature",
     "matter",
     "stratum",
+    "coverage_argument",
     "chart",
     "provenance"
   ],
@@ -61,7 +62,7 @@
     "coverage_argument": {
       "type": "string",
       "minLength": 1,
-      "$comment": "Record 0005 says a record carries this. It is not in the required list, because the worked record in record 0003 does not carry it and this schema is required to validate that record. See docs/record-format.md, the section on what this schema does not require."
+      "$comment": "Record 0005: whether the declared strata cover the declared range is not decidable here, so this prose assertion is the only thing standing between a stratum list and a gap in it. Required of every record, including a record with one stratum, per record 0015."
     },
 
     "parameter": {
@@ -94,7 +95,11 @@
 
     "matter": { "$ref": "#/$defs/matter" },
     "provenance": { "$ref": "#/$defs/provenance" },
-    "claimed": { "$ref": "#/$defs/claimed" },
+    "claimed": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/claimed" },
+      "$comment": "Record 0005 attaches every claimed value to a stratum and nothing to the family as a whole, so this is a list of entries rather than a table of field names, per record 0015. A table with one stratum key beside it cannot carry record 0005's own worked Kerr entry, whose claimed isometry dimension differs between the two strata."
+    },
     "derived": {
       "type": "array",
       "items": { "$ref": "#/$defs/derived" }
@@ -144,10 +149,9 @@
         "isotropy_dimension",
         "independent_function_count",
         "termination_order",
-        "killing_dimension",
-        "cost"
+        "killing_dimension"
       ],
-      "$comment": "The list record 0003 fixes. Claimed keys are the same names, which is why both blocks reference this."
+      "$comment": "The list record 0003 fixes, less cost, which record 0015 takes off it: the cost of a run is a property of the run and not a field of the geometry a command computes. A claimed entry names the same fields, which is why both blocks reference this, and so does a verification subject."
     },
 
     "scalar": {
@@ -304,7 +308,7 @@
     "provenance": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["source_kind", "citation", "transcribed_on"],
+      "required": ["source_kind", "citation", "locator", "transcribed_on"],
       "properties": {
         "source_kind": {
           "enum": ["primary", "secondary", "derived_here"],
@@ -314,32 +318,38 @@
         "locator": {
           "type": "string",
           "minLength": 1,
-          "$comment": "Record 0006 says a citation with no locator sends the next reader to a book rather than to a line. It is not in the required list, because the worked record in record 0003 does not carry it. See docs/record-format.md."
+          "$comment": "Where inside the source the metric is. Record 0006 says a citation with no locator sends the next reader to a book rather than to a line, and marks only doi and url optional; record 0015 puts it in the required list for that reason."
         },
         "doi": { "type": "string", "minLength": 1 },
         "url": { "type": "string", "minLength": 1 },
         "transcribed_on": { "$ref": "#/$defs/date" },
-        "note": { "type": "string" }
+        "note": {
+          "type": "string",
+          "$comment": "Record 0006 defines this as prose for what the other fields cannot carry, so most records have nothing to put in it. Optional per record 0015, which says so rather than leaving it to be read off this list."
+        }
       }
     },
 
     "claimed": {
       "type": "object",
       "additionalProperties": false,
+      "required": ["field", "value", "stratum", "source"],
       "properties": {
-        "source": { "type": "string", "minLength": 1 },
+        "field": { "$ref": "#/$defs/derived_field_name" },
+        "value": { "$ref": "#/$defs/scalar" },
         "stratum": {
           "type": "string",
           "minLength": 1,
-          "$comment": "Record 0005 says every claimed value attaches to a stratum. It is not required here, because the worked record in record 0003 carries a claimed block with no stratum. See docs/record-format.md."
+          "$comment": "Record 0005: every claimed value attaches to a stratum and nothing attaches to the family as a whole. Required per record 0015."
+        },
+        "chart": { "type": "string", "minLength": 1 },
+        "source": {
+          "type": "string",
+          "minLength": 1,
+          "$comment": "Record 0003: a claimed field carries the source it was read from, per value. Per entry rather than per block, so a record reading two values out of two papers can say so."
         }
       },
-      "patternProperties": {
-        "^(petrov_type|ricci_type|ricci_scalar|field_equations_hold|isotropy_dimension|independent_function_count|termination_order|killing_dimension|cost)$": {
-          "$ref": "#/$defs/scalar"
-        }
-      },
-      "$comment": "A value read from the literature. Claimed and derived never merge, per record 0003, and this block is what removes the reason to write a hand-read value into the derived block."
+      "$comment": "One value read from the literature. Claimed and derived never merge, per record 0003, and this block is what removes the reason to write a hand-read value into the derived block."
     },
 
     "derived": {
@@ -354,20 +364,19 @@
         "command": { "type": "string", "minLength": 1 },
         "commit": { "$ref": "#/$defs/commit" },
         "date": { "$ref": "#/$defs/date" },
-        "cost": { "$ref": "#/$defs/cost" },
         "assumption": {
           "type": "array",
           "items": { "$ref": "#/$defs/assumption" },
           "$comment": "Record 0009. An empty or absent list is the normal case. A value computed under an assumption is a weaker claim than one proved outright, and this list is what stops it being read as the same claim."
         }
       },
-      "$comment": "Written only by a command. The stamp is the whole point: a derived entry with no command, commit or date is refused here rather than accepted with a blank."
+      "$comment": "Written only by a command. The stamp is the whole point: a derived entry with no command, commit or date is refused here rather than accepted with a blank. It carries no cost: record 0015 puts the cost of a run on the verification entry and nowhere else, and additionalProperties false is what refuses a second home."
     },
 
     "cost": {
       "type": "object",
       "additionalProperties": true,
-      "$comment": "Record 0011, issue #20, fixes what a cost report holds and has not landed. The shape is deliberately open until it does, and this comment is why the schema is loose here."
+      "$comment": "Record 0011, issue #20, fixes what a cost report holds and has not landed. The shape is deliberately open until it does, and this comment is why the schema is loose here. Where it is stored is record 0015 and is settled."
     },
 
     "assumption": {
