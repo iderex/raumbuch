@@ -109,7 +109,10 @@ class TheLegRefuses(unittest.TestCase):
         self.assertEqual(verdict.state, "refused")
         self.assertIn("fails closed", verdict.detail)
 
-    def test_an_environment_with_no_toolkit_to_ask_with(self) -> None:
+    def test_an_environment_with_no_toolkit_is_not_read_as_a_refusal(self) -> None:
+        # It is not a refusal either: nothing was asked, so nothing was refused,
+        # and the job that has to cover this leg requires it rather than reading
+        # this line as a pass.
         with (
             POSIX,
             mock.patch.dict(os.environ, {}, clear=True),
@@ -117,8 +120,9 @@ class TheLegRefuses(unittest.TestCase):
             answered(headless.CANNOT_ASK),
         ):
             verdict = headless.run(ROOT)
-        self.assertEqual(verdict.state, "refused")
+        self.assertEqual(verdict.state, "not run")
         self.assertIn("no toolkit to ask with", verdict.detail)
+        self.assertIn("costs", verdict.detail)
 
     def test_a_tree_with_the_fixtures_missing(self) -> None:
         with POSIX, mock.patch.dict(os.environ, {}, clear=True), unprivileged():

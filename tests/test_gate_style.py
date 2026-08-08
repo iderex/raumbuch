@@ -31,10 +31,21 @@ Found 2 errors.
 
 
 def tool_says(returncode: int, stdout: str = "", stderr: str = ""):
+    """The tool, installed, answering exactly this.
+
+    Both halves are patched. A leg asks whether the tool is there before it asks
+    it anything, so a fixture that answers without being installed tests a
+    branch the leg never reaches, and the suite would then pass where the tool
+    is absent and fail where it is present.
+    """
     completed = subprocess.CompletedProcess(
         args=["ruff"], returncode=returncode, stdout=stdout, stderr=stderr
     )
-    return mock.patch.object(tool, "invoke", return_value=completed)
+    return mock.patch.multiple(
+        tool,
+        invoke=mock.Mock(return_value=completed),
+        installed=mock.Mock(return_value=True),
+    )
 
 
 class TheFormatLeg(unittest.TestCase):

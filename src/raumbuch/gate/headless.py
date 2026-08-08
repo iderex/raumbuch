@@ -117,11 +117,13 @@ def run(root: Path) -> gate.Verdict:
             "opens one"
         )
     if display.returncode == CANNOT_ASK:
-        return gate.refused(
-            f"{DISPLAY_FIXTURE.as_posix()} had no toolkit to ask with, so this "
-            "environment refused nothing and the proof was not made. A missing "
+        return gate.skipped(
+            f"not run: {DISPLAY_FIXTURE.as_posix()} had no toolkit to ask with, "
+            "so nothing was refused and the proof was not made. A missing "
             "toolkit read as a missing display is a check that passes "
-            "everywhere, so this leg fails closed"
+            "everywhere. Running it costs an environment carrying the toolkit, "
+            "which is the image the check runs in, and the job that has to "
+            "cover this leg requires it rather than accepting this line"
         )
 
     elevation = ask(root, ELEVATION_FIXTURE)

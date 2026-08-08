@@ -66,8 +66,11 @@ is a refusal by construction, which is the container. **The elevation half of
 this contract is proven on a runner and never locally.** That is a bound on the
 check rather than a gap in it, and it is written here rather than discovered.
 
-The leg does not run at all on a machine with a display attached or off POSIX,
-and it says so with what running it would cost. Because a leg that did not run
+The leg does not run at all on a machine with a display attached, off POSIX, or
+where there is no toolkit to open a window with, and it says so with what running
+it would cost. A missing toolkit is not a missing display: reading the first as
+the second is a check that passes on any image, so nothing was asked and nothing
+is claimed. Because a leg that did not run
 leaves a job green over a set it did not cover, the job asks for the leg and
 requires it: `--require headless` turns a leg that did not run into a refusal, so
 a container that lost its unprivileged user or gained a display reddens rather
