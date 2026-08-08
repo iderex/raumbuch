@@ -17,6 +17,7 @@ two half-lists. A row is added when its check exists, never in advance of one.
 | `hook` | a `.githooks/pre-push` carrying any instruction besides the gate invocation | the `gate` workflow, and the pre-push hook |
 | `format` | a tree the formatter would change | the `format` job of the `style` workflow, and the pre-push hook |
 | `lint` | a finding against the rule set in `pyproject.toml` | the `lint` job of the `style` workflow, and the pre-push hook |
+| `headless` | an environment where a display can be opened or elevation is granted | the `Headless and unprivileged test contract` job of the `contract` workflow |
 
 ## The formatter and the linter
 
@@ -37,6 +38,40 @@ Reformatting one would be editing a record, which record 0000 refuses.
 
 Neither leg reformats or fixes anything. A leg that repaired the tree would be a
 check that passes on a tree nobody wrote.
+
+## The test contract
+
+Every test in the main suite runs with no display attached, with no elevated
+privileges, and with no device the runner does not have. A suite that needs a
+desktop session is a suite that runs on the machine of whoever wrote it.
+
+Hardware-bound work is a separate and honestly named harness. The classification
+runs that need very large memory belong to the seventh milestone, they do not run
+in the main suite, and a green main suite is never reported as though they had
+run. Record 0011, issue #20, is where those runs and their budget are fixed.
+
+The `headless` leg proves the contract by asking rather than by assuming. Two
+fixtures in `tests/` do the asking, one opening a display and one asking to
+become the superuser, and the leg refuses where either succeeds. Neither is
+collected by the suite: both are named so that no default pattern picks them up,
+which is an exclusion by construction rather than a note somebody has to read.
+
+The two are not symmetric, and the difference is worth knowing before somebody
+tries to make them so. A test that opens a display fails on a machine with no
+display, which is the check working. A request for elevation on a developer's
+machine is not a failure at all; it is a consent dialog taking the screen from
+whoever is sitting there, and a proof that interrupts the person reading it is a
+proof nobody keeps running. So the elevation fixture asks only where the answer
+is a refusal by construction, which is the container. **The elevation half of
+this contract is proven on a runner and never locally.** That is a bound on the
+check rather than a gap in it, and it is written here rather than discovered.
+
+The leg does not run at all on a machine with a display attached or off POSIX,
+and it says so with what running it would cost. Because a leg that did not run
+leaves a job green over a set it did not cover, the job asks for the leg and
+requires it: `--require headless` turns a leg that did not run into a refusal, so
+a container that lost its unprivileged user or gained a display reddens rather
+than passes.
 
 ## What a run says, and what it does not
 

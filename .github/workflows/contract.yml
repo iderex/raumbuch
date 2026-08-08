@@ -1,0 +1,62 @@
+name: contract
+
+# The test contract: no display, no privilege, no device the runner does not
+# have. It is a birth requirement rather than a later cleanup, because the first
+# helper that quietly opens a plotting window will do it where nobody reads, and
+# by then the suite will not run in a container any more.
+#
+# The job runs in a container as an unprivileged user, and both of those are
+# declared below where a reader can see them rather than described somewhere
+# else. The verb is asked for the `headless` leg and required to run it, so a
+# job that lost either condition refuses instead of reporting green over a
+# contract nothing asked about.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  headless:
+    name: Headless and unprivileged test contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    container:
+      # The full image rather than a slim one, because the display fixture needs
+      # a toolkit to ask with and the leg refuses a run where it had none: a
+      # missing toolkit read as a missing display is a check that passes
+      # everywhere. The image carries no digest; pinning what this project runs
+      # on is issue #27, and this is one of the places it will reach.
+      image: python:3
+      # Unprivileged. The image runs as root unless it is told not to, and a
+      # suite that passes as root has not met this contract.
+      options: --user 1001:1001
+
+    env:
+      # The package is under src/ per record 0001, so the verb runs out of the
+      # checkout. No display variable is set anywhere in this file, which is the
+      # other half of what the job asserts.
+      PYTHONPATH: src
+      HOME: /tmp
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Judge the contract
+        run: python3 -m raumbuch gate --only headless --require headless
+      - name: Run the main suite under it
+        # The suite runs here as the unprivileged user, in the container, with
+        # no display attached. Running the suite is issue #25's leg and it does
+        # not exist yet; when it does, this step goes and the gate above covers
+        # it, which is one procedure instead of the two this line is half of.
+        run: python3 -m unittest discover -s tests

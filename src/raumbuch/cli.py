@@ -43,11 +43,24 @@ def parser() -> argparse.ArgumentParser:
             "so a limited run cannot be read as a whole one"
         ),
     )
+    gate_verb.add_argument(
+        "--require",
+        action="append",
+        choices=[leg.name for leg in gate.LEGS],
+        metavar="LEG",
+        help=(
+            "refuse if this leg does not run, repeatable. A run that exists to "
+            "cover one leg says so, rather than reporting green over a set it "
+            "did not cover"
+        ),
+    )
     return argument_parser
 
 
 def main(argv: list[str] | None = None) -> int:
     arguments = parser().parse_args(argv)
     if arguments.verb == "gate":
-        return gate.main(arguments.root, only=arguments.only)
+        return gate.main(
+            arguments.root, only=arguments.only, required=arguments.require
+        )
     raise AssertionError(f"no such verb: {arguments.verb}")
