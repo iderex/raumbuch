@@ -120,6 +120,36 @@ class AskingForOneLeg(unittest.TestCase):
         self.assertIn("2 leg(s) declared: 1 passed, 0 refused, 1 not run.", lines[-1])
 
 
+class RequiringALeg(unittest.TestCase):
+    def test_a_required_leg_that_did_not_run_is_refused(self) -> None:
+        seen: list[str] = []
+        legs = (
+            leg("first", gate.passed("held"), seen),
+            leg("second", gate.passed("held"), seen),
+        )
+        results = gate.run(ROOT, legs, only=["first"], required=["second"])
+        self.assertEqual(results[1][1].state, "refused")
+        self.assertIn("required second to run and it did not", results[1][1].detail)
+
+    def test_the_reason_it_did_not_run_survives_into_the_refusal(self) -> None:
+        seen: list[str] = []
+        legs = (leg("only", gate.passed("held"), seen),)
+        results = gate.run(ROOT, legs, only=["nothing"], required=["only"])
+        self.assertIn("not asked for", results[0][1].detail)
+
+    def test_a_required_leg_that_ran_is_left_alone(self) -> None:
+        seen: list[str] = []
+        legs = (leg("only", gate.passed("held"), seen),)
+        results = gate.run(ROOT, legs, required=["only"])
+        self.assertEqual(results[0][1].state, "passed")
+
+    def test_requiring_a_leg_that_refused_changes_nothing(self) -> None:
+        seen: list[str] = []
+        legs = (leg("only", gate.refused("a fixture refusal"), seen),)
+        results = gate.run(ROOT, legs, required=["only"])
+        self.assertEqual(results[0][1].detail, "a fixture refusal")
+
+
 class ADetailOfSeveralLines(unittest.TestCase):
     def test_every_line_of_it_reaches_the_report(self) -> None:
         seen: list[str] = []
@@ -130,14 +160,26 @@ class ADetailOfSeveralLines(unittest.TestCase):
 
 
 class TheDeclaredLegs(unittest.TestCase):
-    def test_the_gate_of_this_tree_passes_on_this_tree(self) -> None:
+    def test_no_leg_refuses_this_tree(self) -> None:
         results = gate.run(ROOT)
         refused = [
             (leg.name, verdict.detail)
             for leg, verdict in results
-            if verdict.state != "passed"
+            if verdict.state == "refused"
         ]
         self.assertEqual(refused, [], "the gate must be green on a clean checkout")
+
+    def test_a_leg_that_did_not_run_here_says_why_and_what_running_it_costs(
+        self,
+    ) -> None:
+        # Not every leg can run everywhere. The `headless` leg judges an
+        # environment with no display and no privilege, which a developer
+        # machine is not, and a run that omitted it in silence would report a
+        # contract as met that nothing had asked about.
+        for leg, verdict in gate.run(ROOT):
+            if verdict.state == "not run":
+                self.assertIn("not run", verdict.detail, leg.name)
+                self.assertIn("costs", verdict.detail, leg.name)
 
     def test_no_leg_is_declared_twice(self) -> None:
         names = [leg.name for leg in gate.LEGS]

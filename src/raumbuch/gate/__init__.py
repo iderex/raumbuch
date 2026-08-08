@@ -20,7 +20,7 @@ import sys
 from collections.abc import Callable, Collection, Iterable, Sequence
 from pathlib import Path
 
-from raumbuch.gate import formatting, hook, layout, linting
+from raumbuch.gate import formatting, headless, hook, layout, linting
 
 PASSED = "passed"
 REFUSED = "refused"
@@ -68,13 +68,43 @@ LEGS: tuple[Leg, ...] = (
     Leg("hook", hook.run),
     Leg("format", formatting.run),
     Leg("lint", linting.run),
+    Leg("headless", headless.run),
 )
+
+
+def require(
+    results: list[tuple[Leg, Verdict]], required: Collection[str]
+) -> list[tuple[Leg, Verdict]]:
+    """Turn a leg that did not run into a refusal, where the run required it.
+
+    A leg that did not run leaves the gate green over a set it did not cover.
+    Where a run exists to cover one leg, and that leg is the one that decides
+    whether an environment is the environment it was built to judge, the run
+    saying so is what stops a misconfigured job from reporting a contract met
+    that nothing asked about.
+    """
+    judged = []
+    for leg, verdict in results:
+        if leg.name in required and verdict.state == NOT_RUN:
+            judged.append(
+                (
+                    leg,
+                    refused(
+                        f"this run required {leg.name} to run and it did not: "
+                        f"{verdict.detail}"
+                    ),
+                )
+            )
+            continue
+        judged.append((leg, verdict))
+    return judged
 
 
 def run(
     root: Path,
     legs: Sequence[Leg] = LEGS,
     only: Collection[str] | None = None,
+    required: Collection[str] | None = None,
 ) -> list[tuple[Leg, Verdict]]:
     """Run each leg in order, stopping at the first refusal.
 
@@ -113,7 +143,7 @@ def run(
         results.append((leg, verdict))
         if verdict.state == REFUSED:
             stopped_at = leg.name
-    return results
+    return require(results, required) if required else results
 
 
 def report(root: Path, results: Iterable[tuple[Leg, Verdict]]) -> list[str]:
@@ -141,10 +171,11 @@ def main(
     legs: Sequence[Leg] = LEGS,
     out=None,
     only: Collection[str] | None = None,
+    required: Collection[str] | None = None,
 ) -> int:
     """Run the gate and print the report. Non-zero exactly when a leg refused."""
     out = sys.stdout if out is None else out
-    results = run(root, legs, only)
+    results = run(root, legs, only, required)
     for line in report(root, results):
         print(line, file=out)
     return 1 if any(verdict.state == REFUSED for _, verdict in results) else 0
