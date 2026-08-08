@@ -6,8 +6,9 @@ and why it holds it is decided in the decision records, chiefly
 [0004](decisions/0004-identifiers-and-corrections.md) for the identifier,
 [0005](decisions/0005-parameters-and-charts.md) for parameters, strata and
 charts, and [0006](decisions/0006-provenance-and-verification.md) for provenance
-and verification. This document does not restate their arguments. It says what to
-type and what the machine will refuse.
+and verification, with [0015](decisions/0015-record-disagreements-resolved.md)
+settling the four places those records disagreed. This document does not restate
+their arguments. It says what to type and what the machine will refuse.
 
 The schema is `schema/record-1.schema.json`. It is a JSON Schema, draft 2020-12,
 applied to the parsed TOML document rather than to the file text. The `1` in the
@@ -67,6 +68,11 @@ A record with no parameters is a family of one and simply omits the list.
 `stratum`, a list of tables, each with `name`, `generic` and `condition`. Exactly
 one stratum has `generic = true`, and the schema refuses zero and refuses two.
 
+`coverage_argument`, prose saying why the declared strata cover the declared
+range. Required of every record, including a record with one stratum, where it is
+one sentence. Nothing here can decide coverage, so this is the assertion a reader
+checks instead, and record 0015 is where it was made required.
+
 `chart`, a list of tables, each with `name`, `coordinates` in order, `region` in
 one sentence, `range` as a list of conditions, optional `identifications`, and
 `metric` as a list of one table per independent component with `i`, `j` and
@@ -80,8 +86,11 @@ relation, which is the mistake that turns one entry into two catalogues.
 the schema requires `stress_energy` in the same shape as the metric components.
 
 `provenance`, a table with `source_kind`, one of `primary`, `secondary` or
-`derived_here`, plus `citation` and `transcribed_on`. `locator`, `doi`, `url` and
-`note` are also part of the block. See the section below on what is not required.
+`derived_here`, plus `citation`, `locator` and `transcribed_on`. The locator is
+where inside the source the metric is, a page, an equation or a section, and it
+is required because a citation without one sends the next reader to a book rather
+than to a line. `doi` and `url` are optional and present where they exist. `note`
+is optional prose for what the other fields cannot carry.
 
 `note`, prose, for anything the fields cannot carry.
 
@@ -104,9 +113,18 @@ language and it does not hand your text to a computer algebra system's reader.
 
 ## The claimed block
 
-Keys are the derived field names, plus `source` for where you read them. A value
-here is what the literature says. Nothing in this project has confirmed it, and
-the published entry carries a marker saying so.
+A list of tables, one per value you read from the literature. Each names the
+`field`, which is one of the derived field names, the `value`, the `stratum` it
+holds on, and the `source` you read it from. `chart` is optional, for a value
+that is only meaningful in one of them.
+
+Every value attaches to a stratum and nothing attaches to the family as a whole.
+That is record 0005, and the reason it is a list rather than a table of keys: the
+same field can carry different values on different strata, which is the Kerr case
+where the isometry dimension is 4 where the spin vanishes and 2 elsewhere.
+
+A value here is what the literature says. Nothing in this project has confirmed
+it, and the published entry carries a marker saying so.
 
 ## The machine-written blocks
 
@@ -114,8 +132,9 @@ You do not write these. They are here so you can read a record somebody else's
 run produced.
 
 `derived`, a list of tables, each naming the `field`, the `value`, the `stratum`
-and `chart` it holds on, the `command`, the `commit` and the `date`, optionally
-the `cost`, and optionally an `assumption` list. An assumption entry names the
+and `chart` it holds on, the `command`, the `commit` and the `date`, and
+optionally an `assumption` list. It carries no cost: the cost of a run sits on
+the verification entry, per records 0006 and 0015. An assumption entry names the
 expression, which side of a zero test was assumed, where it came from, and the
 order it was applied at. A value computed under an assumption is a weaker claim
 than one proved outright, and the list is what stops the two being read as the
@@ -151,6 +170,8 @@ signature = "-+++"
 
 # Geometric units, G = c = 1. The convention record, 0002 (issue #7), fixes this
 # for every record and this line records which way it went.
+
+coverage_argument = "One stratum, marked generic, whose condition is the declared range M > 0 of the one parameter. Nothing lies outside it, so the strata cover the range."
 
 [[parameter]]
 name = "M"
@@ -194,17 +215,30 @@ i = "phi"
 j = "phi"
 value = "r^2*sin(theta)^2"
 
-[claimed]
-petrov_type = "D"
-ricci_type = "the Ricci tensor vanishes"
-killing_dimension = 4
-source = "provenance.source, the citation recorded below"
+[[claimed]]
+field = "petrov_type"
+value = "D"
+stratum = "generic"
+source = "the citation in the provenance block below"
+
+[[claimed]]
+field = "ricci_type"
+value = "the Ricci tensor vanishes"
+stratum = "generic"
+source = "the citation in the provenance block below"
+
+[[claimed]]
+field = "killing_dimension"
+value = 4
+stratum = "generic"
+source = "the citation in the provenance block below"
 
 [provenance]
 # Field names are fixed by record 0006, issue #12. The values here are a
 # placeholder until the first real entry lands under issue #73.
 source_kind = "secondary"
 citation = "to be filled by issue #73"
+locator = "to be filled by issue #73"
 transcribed_on = "2026-08-07"
 
 # No [[derived]] entries. Nothing in this repository has computed anything yet,
@@ -260,30 +294,26 @@ promising them. Whether the declared strata cover the declared range, which is w
 `coverage_argument` is prose a reader checks. And whether a chart relation's
 stated transformation does what it says, which nothing here verifies.
 
-## What the schema does not require, and why
+## Where the schema was weaker than the records, and is not any more
 
-Four places where the schema is knowingly weaker than the decision records, all of
-them held by issue #107.
+This section held four places where the schema permitted what records 0005 and
+0006 required, because it had to validate a worked record carrying none of them.
+Record 0015 resolved all four and issue #107 is where they were found. What
+changed, so that a reader who met the old text knows which way each went:
 
-`coverage_argument` is not required, and record 0005 says a record carries it.
+`coverage_argument` is required of every record.
 
-A `stratum` on the claimed block is not required, and record 0005 says every
-claimed field attaches to a stratum and that nothing attaches to the family as a
-whole.
+Every claimed value names the stratum it holds on, and the claimed block is a
+list of entries rather than a table of keys, because a table cannot carry two
+values of one field on two strata.
 
-`locator` in the provenance block is not required, and record 0006 lists the
-provenance fields as these and no others, marking only `doi` and `url` optional.
+`locator` is required in the provenance block. `doi`, `url` and `note` stay
+optional, which is what record 0006 says of the first two and what its own
+definition of the third amounts to.
 
-`cost` on a derived entry is not required, because record 0003 puts the cost of
-the run on the derived entry and record 0006 puts it on the verification entry.
-The schema requires it on a `recomputed` verification entry and permits it on a
-derived entry, which satisfies both readings and settles neither.
+`cost` sits on the verification entry and nowhere else. A derived entry carrying
+one is refused, and `cost` is not one of the derived field names.
 
-The reason is the same in all four: the schema is required to validate the worked
-Schwarzschild record that record 0003 publishes, and that record carries none of
-the first three. Making the schema faithful to records 0005 and 0006 would refuse
-the example the record format itself holds up.
-
-This is a gap, not a decision. A record with no locator is not a complete record
-and the schema will not tell you so. Until #107 is settled, the sentence a reader
-needs is this one rather than the absence of an error.
+One looseness is still here and it is a different one. The shape of a cost report
+is record 0011, issue #20, which has not landed, so `cost` is an object with no
+required fields. What a cost report holds is open; where it is stored is not.

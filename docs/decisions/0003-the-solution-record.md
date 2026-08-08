@@ -72,6 +72,8 @@ Asserted, and written by a person.
 Claimed, written by a person, each key carrying the source it was read from.
 The keys are the same as the derived keys below.
 
+That shape is corrected below the derived table.
+
 Derived, written only by a command. Each entry names the field, the value, the
 stratum and chart it holds on, the command, the commit, the date, and the cost of
 the run.
@@ -92,6 +94,45 @@ No code exists in this repository yet, so not one of those commands can be run
 today. The column names what each command will be called and the issue that
 builds it. It is a reservation, not a measurement, and nothing in this record
 should be read as saying a value has been computed.
+
+### Correction, 2026-08-08, on where the cost of a run is stored
+
+The paragraph and the table above put the cost of a run on the derived entry and
+name `cost` as a derived field. Record 0006 stores it on the verification entry
+instead, and gives the reason: cost is a property of a run rather than of a
+solution, and a record can carry several runs of one command at different
+commits. It also lists storing the cost on the record among its rejected
+alternatives, so the position above was met and refused rather than overlooked.
+
+Record 0006 is the one in force. A derived entry carries no cost, and `cost` is
+not one of the derived field names. Record 0015 is where that is argued, and
+issue #107 is where it was found, by reading records 0003, 0005 and 0006 as one
+field list while writing `schema/record-1.schema.json`.
+
+The text above is left as it was written. Record 0000 refuses an in-place rewrite
+because a reader who meets an old argument then cannot tell which version it was
+made against, and that reason holds for one row as much as for a whole decision.
+What record 0000 does not fix is what a correction looks like as distinct from a
+supersession, and issue #110 holds that.
+
+### Correction, 2026-08-08, on the shape of the claimed block
+
+The claimed block above is a table of field names, each carrying the source it
+was read from. Record 0005 requires every claimed value to attach to a stratum
+and nothing to attach to the family as a whole. A table cannot do that for a
+record with more than one stratum: one stratum key beside the values attaches all
+of them to the same subset, and record 0005's own worked Kerr entry has a claimed
+isometry dimension of 4 on the `a = 0` stratum and 2 on the generic one.
+
+So the claimed block is a list of entries, one per claimed value, each naming the
+`field`, the `value`, the `stratum` it holds on and the `source` it was read
+from. That is the derived block's shape, which is what the sentence above says
+the two blocks are to each other. The source moves onto the entry with it, which
+is the per-key source the sentence above asks for and the table shape could not
+give: a record reading two values out of two papers now has somewhere to say so.
+
+Found the same way as the correction above, and argued in record 0015. The
+worked example below carries the new shape.
 
 ### The format
 
@@ -160,6 +201,8 @@ signature = "-+++"
 # Geometric units, G = c = 1. The convention record, 0002 (issue #7), fixes this
 # for every record and this line records which way it went.
 
+coverage_argument = "One stratum, marked generic, whose condition is the declared range M > 0 of the one parameter. Nothing lies outside it, so the strata cover the range."
+
 [[parameter]]
 name = "M"
 domain = "real"
@@ -202,17 +245,30 @@ i = "phi"
 j = "phi"
 value = "r^2*sin(theta)^2"
 
-[claimed]
-petrov_type = "D"
-ricci_type = "the Ricci tensor vanishes"
-killing_dimension = 4
-source = "provenance.source, the citation recorded below"
+[[claimed]]
+field = "petrov_type"
+value = "D"
+stratum = "generic"
+source = "the citation in the provenance block below"
+
+[[claimed]]
+field = "ricci_type"
+value = "the Ricci tensor vanishes"
+stratum = "generic"
+source = "the citation in the provenance block below"
+
+[[claimed]]
+field = "killing_dimension"
+value = 4
+stratum = "generic"
+source = "the citation in the provenance block below"
 
 [provenance]
 # Field names are fixed by record 0006, issue #12. The values here are a
 # placeholder until the first real entry lands under issue #73.
 source_kind = "secondary"
 citation = "to be filled by issue #73"
+locator = "to be filled by issue #73"
 transcribed_on = "2026-08-07"
 
 # No [[derived]] entries. Nothing in this repository has computed anything yet,
