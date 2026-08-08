@@ -14,6 +14,7 @@ This index lists every record. A record is present here or it is not landed.
 | [0003](0003-the-solution-record.md) | The solution record | Accepted |
 | [0005](0005-parameters-and-charts.md) | Parameters, strata and charts | Accepted |
 | [0006](0006-provenance-and-verification.md) | Provenance and verification | Accepted |
+| [0007](0007-what-same-means.md) | What "the same solution" means | Accepted |
 | [0010](0010-simplification-and-canonicalisation.md) | Simplification and index canonicalisation | Accepted |
 | [0013](0013-what-is-shared.md) | What is shared with findbuch, and where the boundary runs | Accepted |
 
