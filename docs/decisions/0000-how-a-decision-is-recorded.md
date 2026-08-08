@@ -104,6 +104,105 @@ know what it displaced and where the argument against the old answer is.
 A status of `Superseded by NNNN` naming a record that does not exist is a
 refusal, not a warning, and issue #31 carries the check.
 
+### Correcting a landed record
+
+A correction exists here as a thing distinct from a supersession, and the two are
+not interchangeable.
+
+Supersession is for a decision that was displaced. The answer moved, and a reader
+arriving at the old record has to be sent forward to the one that replaced it.
+Correction is for a record whose answer stands and whose text is wrong somewhere:
+a row of a table, a field name, a worked example that no longer validates against
+what the record delegated to another one.
+
+The boundary is the record's own `## Question`. Where the answer to that question
+moves, the record is superseded. Where the answer stands and something written
+under it is wrong, the record is corrected. A supersession whose new record has
+to repeat every part that did not move is a correction wearing the wrong
+instrument, and the cost of that is paid by the reader, who is told a decision
+was displaced when it was not.
+
+A correction is written into the record, at the place the wrong text sits, and
+the wrong text stays. This is not the in-place rewrite refused above. Nothing
+already written is deleted or changed to say something else, so a reader meeting
+an old argument can still see the version it was made against, which is the whole
+reason for that refusal.
+
+What one looks like:
+
+A heading `### Correction, YYYY-MM-DD, on <what it corrects>`, immediately below
+the passage it corrects. Headings below `##` are free, so a correction adds no
+section and the required list above is untouched.
+
+Its body says what the text above says, what is right instead, which record or
+issue argues it, and how it was found. How it was found is the half a later
+reader cannot reconstruct, and it is the half that tells the next person whether
+to go looking for more of the same.
+
+Where the corrected passage sits far enough above that a reader will not meet the
+correction, the passage gains one sentence pointing down at it. That sentence is
+the only place a correction touches the old text, and it adds a pointer rather
+than changing a claim.
+
+`## Status` and `## Date` do not move. The status is unchanged because the record
+is still the decision in force, and `## Date` is defined above as the date the
+status last changed, so a correction that changes no status changes no date. The
+correction carries its own date in its heading, which is where a reader looks for
+when it was made. The index carries the number, the title and the status, so no
+row in it moves either.
+
+A record whose status is `Superseded by NNNN` gains no correction. It is
+finished, and whatever is wrong in it either no longer matters or is wrong in the
+record that displaced it, which is where the correction belongs.
+
+What the check in issue #31 requires of a correction:
+
+A heading beginning `### Correction,` outside a fenced block carries a
+`YYYY-MM-DD` date directly after that comma.
+
+No such heading appears in a record whose `## Status` is `Superseded by NNNN`.
+
+Nothing else. The required section list, the allowed status words and the index
+rows are unaffected, so a record carrying a correction is well formed exactly
+when it was well formed without one. Whether the body says what was wrong and how
+it was found is not decidable by reading the tree, and the review is where a
+correction that says neither is caught.
+
+### The first correction was made before this shape was written
+
+Record 0003 carries two corrections dated 2026-08-08, one on where the cost of a
+run is stored and one on the shape of the claimed block. Both were made under
+issue #107 and argued in record 0015, and record 0015 says of itself that this
+record described no state between an untouched record and a superseded one and
+that it used one anyway.
+
+The shape above is read off those two rather than invented beside them. The
+heading form, the position below the corrected passage, the untouched original,
+the pointer sentence added above the claimed block, and the unmoved status and
+date are all what record 0003 does today:
+
+    git grep -n '^### Correction' -- docs/decisions/
+    docs/decisions/0003-the-solution-record.md:98:### Correction, 2026-08-08, on where the cost of a run is stored
+    docs/decisions/0003-the-solution-record.md:118:### Correction, 2026-08-08, on the shape of the claimed block
+
+So the instance is inside the answer, and no landed record needs an edit to come
+into it.
+
+### This section is an addition rather than a correction
+
+Nothing above it was wrong. This record said nothing about corrections, and
+saying nothing is not saying something else, so the refusal of an in-place
+rewrite does not reach text that answers a question the record had taken no
+position on.
+
+That is a third shape and it gets one rule here so that nobody has to invent a
+fourth. An addition to a landed record names its date and the issue that asked
+for it, contradicts nothing already in the record, and moves neither the status
+nor the date. Where it would contradict something, the thing it contradicts is
+corrected under the shape above and the addition is that correction.
+
+Added 2026-08-08 under issue #110.
+
 ### The index
 
 `docs/decisions/README.md` lists every record. Each row carries the number, the
@@ -145,6 +244,41 @@ Number the records by date instead of by sequence. Two records written on one
 day collide, and a date in the name invites the reader to treat recency as
 authority rather than reading the status.
 
+The alternatives below were considered for the correction shape, and were added
+with it on 2026-08-08 under issue #110.
+
+Supersession as the only route, with a record wrong in one line superseded in
+full and the cost of that stated rather than left to whoever meets it first. This
+is the answer issue #110 holds open beside the one taken. Rejected because the
+case has already arrived and the instrument was already found wrong for it:
+record 0003 is wrong in one table row and right in the three-block separation,
+the file format, the expression sub-language and the worked example, and a
+replacement would carry all of that across to move the row. The reader of the old
+record would then be sent forward by a pointer that says the decision was
+displaced, which is a false statement about a decision still in force.
+
+Rewrite the wrong line in place and leave no trace. Rejected for the reason the
+supersession section above already gives: a reader who meets an old argument
+cannot then tell which version it was made against. That reason does not weaken
+because the change is one line.
+
+Collect a record's corrections in one section at the end of it. Rejected because
+the reader who needs a correction is the reader reading the wrong passage, and a
+list at the end is found only by somebody who already doubted what they read.
+
+Give each correction its own numbered record. Rejected because it spends a
+number and a full set of six sections to move one row, and it puts the reader one
+hop further from the text that is wrong. Record 0015 is not that shape and is not
+a precedent for it: it is the decision record for four disagreements between
+three records, and the corrections it argued were written into record 0003
+itself.
+
+Move `## Date` when a correction is made, so that the front of the record shows
+it was touched. Rejected because that section is defined above as the date the
+status last changed, and a date meaning two things is a date nobody can read. The
+correction's own date is in its heading, where it belongs to the correction
+rather than to the record.
+
 ## What depends on this
 
 Every record from `0001` onwards, all of which are written to this shape.
@@ -159,3 +293,17 @@ fenced block.
 
 Any later tooling that reads decision records, which may rely on the section
 names being stable and on numbers never being reused.
+
+Issue #31 again, and for two rules beyond the ones above: the date form on a
+correction heading, and the refusal of a correction on a superseded record. Those
+sit in the answer above rather than in the check, on the same coupling as the
+required section list.
+
+Record 0003, whose two corrections are the first instance of the shape and are
+what it was read off. A change to the heading form here makes that record the one
+that no longer matches, so the form moves only with an argument about those two.
+
+Record 0015, which resolved the four disagreements between records 0003, 0005 and
+0006 and chose correction over supersession for record 0003 before there was a
+shape to choose. It named the gap and pointed at issue #110, which is what this
+section answers.
