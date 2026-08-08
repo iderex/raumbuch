@@ -1,0 +1,439 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/iderex/raumbuch/schema/record-1.schema.json",
+  "title": "raumbuch solution record, schema version 1",
+  "$comment": "Applied to the parsed TOML document and never to the file text, per record 0003. The schema version is the 1 in this file's name and in the required const below; a second version is a second file and never an edit to this one.",
+  "type": "object",
+  "additionalProperties": false,
+
+  "required": [
+    "schema_version",
+    "id",
+    "version",
+    "name",
+    "dimension",
+    "signature",
+    "matter",
+    "stratum",
+    "chart",
+    "provenance"
+  ],
+
+  "properties": {
+    "schema_version": {
+      "const": "1",
+      "$comment": "Required of every record, so a consumer never has to guess the shape from the presence of a field."
+    },
+
+    "id": { "$ref": "#/$defs/id" },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "$comment": "Record 0004. Covers the asserted and claimed blocks only. A recomputation does not move it."
+    },
+    "supersedes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/id" },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "superseded_by": { "$ref": "#/$defs/id" },
+    "correction": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/correction" },
+      "$comment": "Record 0004. Append-only, one entry per version above 1."
+    },
+
+    "name": { "type": "string", "minLength": 1 },
+    "aliases": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "dimension": { "type": "integer", "minimum": 2 },
+    "signature": {
+      "type": "string",
+      "pattern": "^[-+]+$",
+      "$comment": "Record 0002 fixes which signature this project writes. The pattern refuses anything that is not a sign string; it does not decide the convention."
+    },
+    "note": { "type": "string" },
+
+    "coverage_argument": {
+      "type": "string",
+      "minLength": 1,
+      "$comment": "Record 0005 says a record carries this. It is not in the required list, because the worked record in record 0003 does not carry it and this schema is required to validate that record. See docs/record-format.md, the section on what this schema does not require."
+    },
+
+    "parameter": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/parameter" },
+      "$comment": "Absent means a family of one, per record 0005, rather than a second kind of record."
+    },
+
+    "stratum": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/stratum" },
+      "contains": {
+        "type": "object",
+        "properties": { "generic": { "const": true } },
+        "required": ["generic"]
+      },
+      "minContains": 1,
+      "maxContains": 1,
+      "$comment": "Record 0005: exactly one stratum is generic. Whether the declared strata cover the declared range is not decidable here and is the asserted coverage_argument instead."
+    },
+
+    "chart": {
+      "type": "array",
+      "minItems": 1,
+      "prefixItems": [{ "$ref": "#/$defs/chart" }],
+      "items": { "$ref": "#/$defs/chart_with_relation" },
+      "$comment": "Record 0005: each chart after the first names its relation to another chart in the same record. prefixItems covers the first chart, items covers every chart after it."
+    },
+
+    "matter": { "$ref": "#/$defs/matter" },
+    "provenance": { "$ref": "#/$defs/provenance" },
+    "claimed": { "$ref": "#/$defs/claimed" },
+    "derived": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/derived" }
+    },
+    "verification": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/verification" }
+    }
+  },
+
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "$comment": "Record 0004. Assigned once, never reused, equal to the filename stem. That last part is not decidable from the document alone and is a loader refusal, issue #36."
+    },
+
+    "date": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "$comment": "Written as a string rather than as a TOML datetime, per record 0003, because the offset datetime is the one TOML type with no JSON counterpart."
+    },
+
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+      "$comment": "A coordinate or parameter name. Whether it is declared where it is used is a loader refusal, issue #36, not a shape."
+    },
+
+    "expression": {
+      "type": "string",
+      "minLength": 1,
+      "$comment": "The expression sub-language of record 0003. This schema checks only that a non-empty string is present. The closed grammar, the closed function list and the closed constant list are issue #40, and an undeclared identifier is refused there and not here."
+    },
+
+    "derived_field_name": {
+      "enum": [
+        "petrov_type",
+        "ricci_type",
+        "ricci_scalar",
+        "field_equations_hold",
+        "isotropy_dimension",
+        "independent_function_count",
+        "termination_order",
+        "killing_dimension",
+        "cost"
+      ],
+      "$comment": "The list record 0003 fixes. Claimed keys are the same names, which is why both blocks reference this."
+    },
+
+    "scalar": {
+      "type": ["string", "number", "boolean"]
+    },
+
+    "correction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "date", "reason"],
+      "properties": {
+        "version": { "type": "integer", "minimum": 2 },
+        "date": { "$ref": "#/$defs/date" },
+        "reason": { "type": "string", "minLength": 1 },
+        "affects": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "domain", "range", "meaning"],
+      "properties": {
+        "name": { "$ref": "#/$defs/identifier" },
+        "domain": {
+          "type": "string",
+          "minLength": 1,
+          "$comment": "No landed record fixes a closed vocabulary for this, so the schema does not invent one."
+        },
+        "range": { "$ref": "#/$defs/expression" },
+        "meaning": { "type": "string", "minLength": 1 }
+      }
+    },
+
+    "stratum": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "generic", "condition"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "generic": { "type": "boolean" },
+        "condition": { "$ref": "#/$defs/expression" },
+        "note": { "type": "string" }
+      }
+    },
+
+    "metric_component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["i", "j", "value"],
+      "properties": {
+        "i": { "$ref": "#/$defs/identifier" },
+        "j": { "$ref": "#/$defs/identifier" },
+        "value": { "$ref": "#/$defs/expression" }
+      },
+      "$comment": "Record 0003 writes only the components with i at or before j in the declared coordinate order, and refuses a duplicate or a transposed duplicate. Neither is decidable without the coordinate list, so both are loader refusals, issue #36."
+    },
+
+    "chart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "coordinates", "region", "range", "metric"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "coordinates": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "region": { "type": "string", "minLength": 1 },
+        "range": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/expression" },
+          "$comment": "A coordinate carrying no condition is unrestricted, per record 0003, so an empty range is legal."
+        },
+        "identifications": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "metric": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/metric_component" }
+        },
+        "relation": { "$ref": "#/$defs/chart_relation" }
+      }
+    },
+
+    "chart_with_relation": {
+      "$ref": "#/$defs/chart",
+      "required": ["name", "coordinates", "region", "range", "metric", "relation"]
+    },
+
+    "chart_relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "chart"],
+      "properties": {
+        "kind": {
+          "enum": ["same_region", "extends", "overlaps"],
+          "$comment": "The closed vocabulary of record 0005."
+        },
+        "chart": { "type": "string", "minLength": 1 },
+        "transformation": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/expression" }
+        },
+        "overlap": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "same_region" } }, "required": ["kind"] },
+          "then": {
+            "required": ["transformation"],
+            "$comment": "Record 0005: under same_region the coordinate transformation is given as an asserted field. Nothing verifies that it does what it says."
+          }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "overlaps" } }, "required": ["kind"] },
+          "then": {
+            "required": ["overlap"],
+            "$comment": "Record 0005: under overlaps the intersection is stated."
+          }
+        }
+      ]
+    },
+
+    "matter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model"],
+      "properties": {
+        "model": { "type": "string", "minLength": 1 },
+        "stress_energy": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/metric_component" }
+        }
+      },
+      "if": {
+        "properties": { "model": { "not": { "const": "vacuum" } } },
+        "required": ["model"]
+      },
+      "then": {
+        "required": ["stress_energy"],
+        "$comment": "Record 0003: where the model is not vacuum the stress-energy components are carried. This is the one asserted field whose absence the schema can refuse on its own."
+      }
+    },
+
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_kind", "citation", "transcribed_on"],
+      "properties": {
+        "source_kind": {
+          "enum": ["primary", "secondary", "derived_here"],
+          "$comment": "The closed vocabulary of record 0006. A fifth value is an amendment to that record, not a value written into a file."
+        },
+        "citation": { "type": "string", "minLength": 1 },
+        "locator": {
+          "type": "string",
+          "minLength": 1,
+          "$comment": "Record 0006 says a citation with no locator sends the next reader to a book rather than to a line. It is not in the required list, because the worked record in record 0003 does not carry it. See docs/record-format.md."
+        },
+        "doi": { "type": "string", "minLength": 1 },
+        "url": { "type": "string", "minLength": 1 },
+        "transcribed_on": { "$ref": "#/$defs/date" },
+        "note": { "type": "string" }
+      }
+    },
+
+    "claimed": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "stratum": {
+          "type": "string",
+          "minLength": 1,
+          "$comment": "Record 0005 says every claimed value attaches to a stratum. It is not required here, because the worked record in record 0003 carries a claimed block with no stratum. See docs/record-format.md."
+        }
+      },
+      "patternProperties": {
+        "^(petrov_type|ricci_type|ricci_scalar|field_equations_hold|isotropy_dimension|independent_function_count|termination_order|killing_dimension|cost)$": {
+          "$ref": "#/$defs/scalar"
+        }
+      },
+      "$comment": "A value read from the literature. Claimed and derived never merge, per record 0003, and this block is what removes the reason to write a hand-read value into the derived block."
+    },
+
+    "derived": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field", "value", "stratum", "chart", "command", "commit", "date"],
+      "properties": {
+        "field": { "$ref": "#/$defs/derived_field_name" },
+        "value": {},
+        "stratum": { "type": "string", "minLength": 1 },
+        "chart": { "type": "string", "minLength": 1 },
+        "command": { "type": "string", "minLength": 1 },
+        "commit": { "$ref": "#/$defs/commit" },
+        "date": { "$ref": "#/$defs/date" },
+        "cost": { "$ref": "#/$defs/cost" },
+        "assumption": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/assumption" },
+          "$comment": "Record 0009. An empty or absent list is the normal case. A value computed under an assumption is a weaker claim than one proved outright, and this list is what stops it being read as the same claim."
+        }
+      },
+      "$comment": "Written only by a command. The stamp is the whole point: a derived entry with no command, commit or date is refused here rather than accepted with a blank."
+    },
+
+    "cost": {
+      "type": "object",
+      "additionalProperties": true,
+      "$comment": "Record 0011, issue #20, fixes what a cost report holds and has not landed. The shape is deliberately open until it does, and this comment is why the schema is loose here."
+    },
+
+    "assumption": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["expression", "side", "source", "order"],
+      "properties": {
+        "expression": { "$ref": "#/$defs/expression" },
+        "side": { "enum": ["zero", "nonzero"] },
+        "source": { "type": "string", "minLength": 1 },
+        "order": { "type": "integer", "minimum": 0 },
+        "frame": { "type": "string", "minLength": 1 }
+      }
+    },
+
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subject", "stratum", "chart", "state"],
+      "properties": {
+        "subject": { "$ref": "#/$defs/derived_field_name" },
+        "stratum": { "type": "string", "minLength": 1 },
+        "chart": { "type": "string", "minLength": 1 },
+        "state": {
+          "enum": [
+            "transcribed",
+            "checked_against_publication",
+            "recomputed",
+            "cross_checked"
+          ],
+          "$comment": "The closed vocabulary of record 0006. Four words for four epistemic positions; collapsing any two of them is the defect. Stale is not a fifth state, it is computed on load from the anchors below."
+        },
+        "publication": { "type": "string", "minLength": 1 },
+        "locator": { "type": "string", "minLength": 1 },
+        "command": { "type": "string", "minLength": 1 },
+        "commit": { "$ref": "#/$defs/commit" },
+        "date": { "$ref": "#/$defs/date" },
+        "cost": { "$ref": "#/$defs/cost" },
+        "record_anchor": { "type": "string", "minLength": 1 },
+        "source_anchor": { "type": "string", "minLength": 1 },
+        "implementation": { "type": "string", "minLength": 1 },
+        "implementation_version": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "state": { "const": "recomputed" } }, "required": ["state"] },
+          "then": {
+            "required": ["command", "commit", "date", "cost", "record_anchor", "source_anchor"],
+            "$comment": "Record 0006: a recomputed entry names the command, the commit and the date, carries the cost of the run, and carries the two anchors staleness is computed from. The record stores no stale flag."
+          }
+        },
+        {
+          "if": { "properties": { "state": { "const": "checked_against_publication" } }, "required": ["state"] },
+          "then": {
+            "required": ["publication", "locator"],
+            "$comment": "Record 0006: the entry names the publication and where in it."
+          }
+        },
+        {
+          "if": { "properties": { "state": { "const": "cross_checked" } }, "required": ["state"] },
+          "then": {
+            "required": ["implementation", "implementation_version"],
+            "$comment": "Record 0006: the entry names that implementation and its version."
+          }
+        }
+      ]
+    }
+  }
+}
