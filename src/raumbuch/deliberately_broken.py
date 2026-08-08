@@ -1,0 +1,5 @@
+import os
+
+x   =  1
+def  f( ):
+    return   x
