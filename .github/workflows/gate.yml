@@ -26,17 +26,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
-    env:
-      # Record 0001 puts the package under src/, so the verb runs out of the
-      # checkout with no install step and nothing resolved from the network. The
-      # interpreter is the one the runner carries; pinning it is issue #27, and
-      # a version literal written here would be a second place to change.
-      PYTHONPATH: src
-
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # No step pushes via git, so do not persist the GITHUB_TOKEN in .git/config.
           persist-credentials: false
+      - name: Install the project and its development extra
+        # A leg whose tool is absent reports that it did not run, and this job
+        # would then be green over a set it did not cover. So the extra is
+        # installed and the green here means every declared leg ran. No version
+        # is written: they are declared in pyproject.toml and pinned by #27.
+        run: python3 -m pip install --disable-pip-version-check -e ".[dev]"
       - name: Run the gate
         run: python3 -m raumbuch gate
