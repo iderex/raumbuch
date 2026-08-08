@@ -26,8 +26,73 @@ requires-python = ">=3.11"
 # imported. It is declared when there is code that needs it.
 dependencies = []
 
+[project.optional-dependencies]
+# The tools a check needs and a run of the library does not. Ruff is one tool
+# doing both jobs, which is one dependency rather than two and one version to
+# pin. No version is written here: issue #27 is where every version is pinned
+# and hash-locked, in one file, and a number written in a second place is a
+# second place to change.
+dev = ["ruff"]
+
 [project.scripts]
 raumbuch = "raumbuch.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+# The formatter and the linter, as the `format` and `lint` legs of the gate run
+# them. Both refuse; neither advises.
+[tool.ruff]
+line-length = 88
+
+# Python files and nothing else. Ruff also formats and lints code blocks inside
+# Markdown, and the Markdown here is `docs/decisions/`, where a landed record is
+# an argument somebody made and its examples are part of what was argued. A
+# formatter that rewrites a decision record is editing a record, which record
+# 0000 refuses. Nothing is lost: no Python this project runs lives in a document.
+include = ["*.py", "*.pyi"]
+
+[tool.ruff.lint]
+# Chosen, not accumulated. Each family is here for a failure it catches:
+#   E, W   the style the formatter cannot express, including line length
+#   F      undefined and unused names, which is the closest thing to a compiler
+#          this means has, per record 0001
+#   I      import order, so a diff never argues about it
+#   UP     constructs the pinned interpreter has replaced
+#   B      bugbear: mutable defaults, loop-variable capture, silent except
+#   SIM    branches and comprehensions that say the same thing more simply
+#   C4     comprehensions built the long way
+#   RET    returns that disagree with each other inside one function
+#   ARG    arguments nothing reads, which is usually a signature that moved
+#   TID    relative imports, which make a module's home ambiguous
+#   PL     pylint's set, whose refusals here are about size and structure
+#   RUF    ruff's own, including unused noqa, so a suppression that stopped
+#          being needed is refused rather than inherited
+select = [
+    "E", "W", "F", "I", "UP", "B", "SIM", "C4", "RET", "ARG", "TID", "PL", "RUF",
+]
+
+# Every rule switched off is switched off here, with the reason. An empty list
+# is the state to return to, and a rule added to it without a reason is not a
+# decision anybody can review.
+ignore = [
+    # PLC0415: an import inside a function. Nothing needs one today, and the
+    # rule is selected above through PL. It is listed here rather than left
+    # implicit because a deferred import is how an optional dependency is
+    # reached, and record 0010 keeps exactly one of those open. Switch it back
+    # on for the tree and off at the one import when that arrives.
+    "PLC0415",
+]
+
+# The pytest family is deliberately not selected. It rewrites unittest-style
+# assertions into bare asserts, and the suite here is written on unittest so
+# that it runs on a checkout with nothing installed, which is what keeps the
+# dependency set empty for issue #27 to lock. Pytest collects these tests
+# unchanged when issue #25 brings it, and the rules would then be arguing for a
+# rewrite of a suite that already runs under both.
+
+[tool.ruff.lint.per-file-ignores]
+# A test asserts on the tree it is given, and a fixture leg takes the root every
+# leg takes and reads none of it. That unused argument is the interface, not an
+# oversight.
+"tests/*" = ["ARG001"]

@@ -28,7 +28,9 @@ class LegsRunInOrder(unittest.TestCase):
         )
         results = gate.run(ROOT, legs)
         self.assertEqual(seen, ["first", "second"])
-        self.assertEqual([verdict.state for _, verdict in results], ["passed", "passed"])
+        self.assertEqual(
+            [verdict.state for _, verdict in results], ["passed", "passed"]
+        )
 
     def test_a_refusal_stops_the_run_and_the_rest_is_reported_not_dropped(self) -> None:
         seen: list[str] = []
@@ -38,7 +40,9 @@ class LegsRunInOrder(unittest.TestCase):
         )
         results = gate.run(ROOT, legs)
         self.assertEqual(seen, ["first"], "the leg after a refusal must not run")
-        self.assertEqual([verdict.state for _, verdict in results], ["refused", "not run"])
+        self.assertEqual(
+            [verdict.state for _, verdict in results], ["refused", "not run"]
+        )
         self.assertIn("the gate stopped at first", results[1][1].detail)
         self.assertIn("running the gate again", results[1][1].detail)
 
@@ -78,14 +82,61 @@ class TheExitCode(unittest.TestCase):
     def test_the_report_is_printed_whatever_the_verdict(self) -> None:
         seen: list[str] = []
         out = io.StringIO()
-        gate.main(ROOT, (leg("only", gate.refused("a fixture refusal"), seen),), out=out)
+        gate.main(
+            ROOT, (leg("only", gate.refused("a fixture refusal"), seen),), out=out
+        )
         self.assertIn("a fixture refusal", out.getvalue())
+
+
+class AskingForOneLeg(unittest.TestCase):
+    def test_only_the_asked_for_leg_runs(self) -> None:
+        seen: list[str] = []
+        legs = (
+            leg("first", gate.passed("held"), seen),
+            leg("second", gate.passed("held"), seen),
+        )
+        gate.run(ROOT, legs, only=["second"])
+        self.assertEqual(seen, ["second"])
+
+    def test_a_leg_nobody_asked_for_is_reported_and_not_dropped(self) -> None:
+        seen: list[str] = []
+        legs = (
+            leg("first", gate.passed("held"), seen),
+            leg("second", gate.passed("held"), seen),
+        )
+        results = gate.run(ROOT, legs, only=["second"])
+        self.assertEqual([leg.name for leg, _ in results], ["first", "second"])
+        self.assertEqual(results[0][1].state, "not run")
+        self.assertIn("not asked for", results[0][1].detail)
+        self.assertIn("--only first", results[0][1].detail)
+
+    def test_a_limited_run_cannot_be_read_as_a_whole_one(self) -> None:
+        seen: list[str] = []
+        legs = (
+            leg("first", gate.passed("held"), seen),
+            leg("second", gate.passed("held"), seen),
+        )
+        lines = gate.report(ROOT, gate.run(ROOT, legs, only=["second"]))
+        self.assertIn("2 leg(s) declared: 1 passed, 0 refused, 1 not run.", lines[-1])
+
+
+class ADetailOfSeveralLines(unittest.TestCase):
+    def test_every_line_of_it_reaches_the_report(self) -> None:
+        seen: list[str] = []
+        legs = (leg("only", gate.refused("a summary\nand a finding"), seen),)
+        lines = gate.report(ROOT, gate.run(ROOT, legs))
+        self.assertIn("a summary", lines[1])
+        self.assertIn("and a finding", lines[2])
 
 
 class TheDeclaredLegs(unittest.TestCase):
     def test_the_gate_of_this_tree_passes_on_this_tree(self) -> None:
         results = gate.run(ROOT)
-        refused = [(leg.name, verdict.detail) for leg, verdict in results if verdict.state != "passed"]
+        refused = [
+            (leg.name, verdict.detail)
+            for leg, verdict in results
+            if verdict.state != "passed"
+        ]
         self.assertEqual(refused, [], "the gate must be green on a clean checkout")
 
     def test_no_leg_is_declared_twice(self) -> None:

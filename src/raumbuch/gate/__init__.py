@@ -16,10 +16,11 @@ verdict. Adding one is a module beside this one and a line in ``LEGS``.
 from __future__ import annotations
 
 import dataclasses
-from collections.abc import Callable, Iterable, Sequence
+import sys
+from collections.abc import Callable, Collection, Iterable, Sequence
 from pathlib import Path
 
-from raumbuch.gate import hook, layout
+from raumbuch.gate import formatting, hook, layout, linting
 
 PASSED = "passed"
 REFUSED = "refused"
@@ -31,7 +32,8 @@ class Verdict:
     """What a leg found, and why it says so.
 
     ``detail`` is the whole of what a reader gets, so it names the property the
-    leg holds when it passes and what was refused when it does not.
+    leg holds when it passes and what was refused when it does not. It may run
+    to several lines where a leg has a tool's findings to hand on.
     """
 
     state: str
@@ -50,6 +52,11 @@ def not_run(detail: str) -> Verdict:
     return Verdict(NOT_RUN, detail)
 
 
+def skipped(detail: str) -> Verdict:
+    """A leg that could not run, with why and what running it would cost."""
+    return Verdict(NOT_RUN, detail)
+
+
 @dataclasses.dataclass(frozen=True)
 class Leg:
     name: str
@@ -59,25 +66,45 @@ class Leg:
 LEGS: tuple[Leg, ...] = (
     Leg("layout", layout.run),
     Leg("hook", hook.run),
+    Leg("format", formatting.run),
+    Leg("lint", linting.run),
 )
 
 
-def run(root: Path, legs: Sequence[Leg] = LEGS) -> list[tuple[Leg, Verdict]]:
+def run(
+    root: Path,
+    legs: Sequence[Leg] = LEGS,
+    only: Collection[str] | None = None,
+) -> list[tuple[Leg, Verdict]]:
     """Run each leg in order, stopping at the first refusal.
 
-    A leg after a refusal is not run, and it is reported rather than dropped,
-    with the refusal that stopped the run and what running it would cost.
+    A leg after a refusal is not run, and a leg nobody asked for is not run.
+    Neither is dropped: both are reported, with the reason and with what running
+    them would cost, so the report always carries every declared leg.
     """
     results: list[tuple[Leg, Verdict]] = []
     stopped_at: str | None = None
     for leg in legs:
+        if only is not None and leg.name not in only:
+            results.append(
+                (
+                    leg,
+                    not_run(
+                        "not asked for: this run was limited to "
+                        f"{', '.join(sorted(only))}. Asking for it costs running "
+                        f"the gate with no --only, or with --only {leg.name}"
+                    ),
+                )
+            )
+            continue
         if stopped_at is not None:
             results.append(
                 (
                     leg,
                     not_run(
-                        f"the gate stopped at {stopped_at}; running this leg costs "
-                        f"repairing what {stopped_at} refused and running the gate again"
+                        f"the gate stopped at {stopped_at}; running this leg "
+                        f"costs repairing what {stopped_at} refused and running "
+                        "the gate again"
                     ),
                 )
             )
@@ -95,8 +122,11 @@ def report(root: Path, results: Iterable[tuple[Leg, Verdict]]) -> list[str]:
     width = max((len(leg.name) for leg, _ in results), default=0)
     lines = [f"raumbuch gate, against {root}"]
     for leg, verdict in results:
-        lines.append(f"  {leg.name.ljust(width)}  {verdict.state:<7}  {verdict.detail}")
-    counted = {state: 0 for state in (PASSED, REFUSED, NOT_RUN)}
+        head, *rest = verdict.detail.splitlines() or [""]
+        lines.append(f"  {leg.name.ljust(width)}  {verdict.state:<7}  {head}")
+        indent = " " * (width + 13)
+        lines.extend(f"{indent}{line}" for line in rest)
+    counted = dict.fromkeys((PASSED, REFUSED, NOT_RUN), 0)
     for _, verdict in results:
         counted[verdict.state] = counted.get(verdict.state, 0) + 1
     lines.append(
@@ -106,12 +136,15 @@ def report(root: Path, results: Iterable[tuple[Leg, Verdict]]) -> list[str]:
     return lines
 
 
-def main(root: Path, legs: Sequence[Leg] = LEGS, out=None) -> int:
+def main(
+    root: Path,
+    legs: Sequence[Leg] = LEGS,
+    out=None,
+    only: Collection[str] | None = None,
+) -> int:
     """Run the gate and print the report. Non-zero exactly when a leg refused."""
-    import sys
-
     out = sys.stdout if out is None else out
-    results = run(root, legs)
+    results = run(root, legs, only)
     for line in report(root, results):
         print(line, file=out)
     return 1 if any(verdict.state == REFUSED for _, verdict in results) else 0

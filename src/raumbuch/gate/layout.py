@@ -53,8 +53,8 @@ def run(root: Path) -> gate.Verdict:
     record = root / RECORD
     if not record.is_file():
         return gate.refused(
-            f"record 0001 fixes the layout and is not in the tree at {RECORD.as_posix()}, "
-            "so what this leg requires cannot be read"
+            "record 0001 fixes the layout and is not in the tree at "
+            f"{RECORD.as_posix()}, so what this leg requires cannot be read"
         )
     paths = declared(record.read_text(encoding="utf-8"))
     if not paths:

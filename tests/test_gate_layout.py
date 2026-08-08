@@ -31,9 +31,7 @@ Prose after the block.
 
 class ReadingTheLayoutOutOfTheRecord(unittest.TestCase):
     def test_the_paths_are_the_first_token_of_each_line_of_the_block(self) -> None:
-        self.assertEqual(
-            layout.declared(BLOCK), ["src/raumbuch/", "tests/", "docs/"]
-        )
+        self.assertEqual(layout.declared(BLOCK), ["src/raumbuch/", "tests/", "docs/"])
 
     def test_prose_after_a_path_is_not_read_as_a_second_path(self) -> None:
         self.assertNotIn("docs/decisions/", layout.declared(BLOCK))
