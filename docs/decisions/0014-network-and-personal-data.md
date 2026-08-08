@@ -168,10 +168,19 @@ never executes under test can contain a connection the suite never reaches. So t
 enforced statement is narrower than the paragraph above, and the gap is named here
 rather than folded into a sentence about the project making no connections.
 
-Nothing refuses a hard-coded address in the tree, nothing refuses a new dependency
-that opens a socket, and no open issue holds either. The list of things reached at
-build time is bounded by the pinning and locking in issue #27, which is a
-different property from a network refusal and is not a substitute for one.
+Nothing in the tree refuses a hard-coded address or a network call in a source
+file today. One open issue holds the property: the greppable invariants check in
+issue #93 lists a network call outside the harness that is allowed one among the
+patterns it refuses, and its done-condition requires every pattern to name the
+decision record it comes from, which is this one. That check does not exist yet,
+and what it would read is source text, so it is a different instrument from the
+runtime denial in issue #29 and neither covers the other.
+
+What no issue holds is a dependency that opens a socket of its own. A pattern
+search over this project's source does not see inside a package it imports, and the
+list of things reached at build time is bounded by the pinning and locking in issue
+#27, which is a property about which versions arrive rather than about what they
+do once they are here. Neither is a substitute for a network refusal.
 
 ## Rejected alternatives
 

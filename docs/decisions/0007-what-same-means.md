@@ -170,8 +170,18 @@ copies, which is the same shape as the section list in record 0000 and the same
 argument for it.
 
 Issue #99 is where the operator documentation lands and is where the copy is
-first made. Issue #31 is the check over decision records and does not cover this.
-No issue covers it today, and this sentence is the disclosure rather than a plan.
+first made, and its done-condition asks for a check that compares the paragraphs
+the `README` carries against the decision records they came from. So the `README`
+copy is held by an open issue. Issue #31 is the check over decision records and
+does not cover this.
+
+What no issue holds is the third copy. The report `is_this_new` returns carries the
+positive paragraph, that copy is in code rather than in a document, and #99's check
+is written against the documentation. So the report may drift from this record with
+nothing comparing them, and it is the copy a consumer reads at the moment the
+verdict is delivered. Nothing refuses a fourth place that paraphrases the
+paragraphs either. Neither of those is covered today and this sentence is the
+disclosure rather than a plan.
 
 ## Rejected alternatives
 
