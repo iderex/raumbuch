@@ -10,6 +10,7 @@ This index lists every record. A record is present here or it is not landed.
 | Number | Title | Status |
 | --- | --- | --- |
 | [0000](0000-how-a-decision-is-recorded.md) | How a decision is recorded | Accepted |
+| [0001](0001-the-means.md) | The means: language, toolchain and symbolic algebra layer | Accepted |
 | [0002](0002-frame-and-conventions.md) | Frame, signature and conventions | Accepted |
 | [0003](0003-the-solution-record.md) | The solution record | Accepted |
 | [0005](0005-parameters-and-charts.md) | Parameters, strata and charts | Accepted |
