@@ -60,3 +60,41 @@ jobs:
         # not exist yet; when it does, this step goes and the gate above covers
         # it, which is one procedure instead of the two this line is half of.
         run: python3 -m unittest discover -s tests
+
+  # Two temporary jobs, reverted in the next commit. They are the demonstration
+  # that this check bites end to end: the same leg, in the same image, with one
+  # condition of the contract removed each time.
+  proof-root:
+    name: Proof, the contract refuses a privileged container
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    container:
+      image: python:3
+      options: --user 0:0
+    env:
+      PYTHONPATH: src
+      HOME: /tmp
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Judge the contract
+        run: python3 -m raumbuch gate --only headless --require headless
+
+  proof-display:
+    name: Proof, the contract refuses a container with a display attached
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    container:
+      image: python:3
+      options: --user 1001:1001
+    env:
+      PYTHONPATH: src
+      HOME: /tmp
+      DISPLAY: ":99"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Judge the contract
+        run: python3 -m raumbuch gate --only headless --require headless
