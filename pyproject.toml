@@ -1,0 +1,33 @@
+# The project, as record 0001 fixes it: Python 3 on CPython, a package under
+# src/ and a console script over it.
+#
+# Two things this file deliberately does not carry yet. The interpreter pin and
+# the hash-locked dependency set are issue #27, which is where .python-version
+# and requirements.lock land and where drift between them is refused. The
+# distribution metadata a release needs is issue #96. What is here is what the
+# skeleton needs to be a project, and no more.
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "raumbuch"
+version = "0.0.0"
+description = "A verified catalogue of exact solutions of the Einstein field equations"
+readme = "README.md"
+license = "AGPL-3.0-only"
+license-files = ["LICENSE"]
+# A floor rather than a pin. The version this project is run at is pinned in one
+# file by issue #27; this line says only which syntax the source may use.
+requires-python = ">=3.11"
+# Empty on purpose. Record 0001 chose SymPy as the symbolic algebra layer, and
+# nothing behind the algebra boundary is implemented, so nothing here would be
+# imported. It is declared when there is code that needs it.
+dependencies = []
+
+[project.scripts]
+raumbuch = "raumbuch.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

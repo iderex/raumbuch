@@ -1,0 +1,42 @@
+name: gate
+
+# The gate is one verb of the project. This workflow runs that verb and carries
+# no leg of its own, so there is one procedure and not a copy of it in YAML that
+# drifts from the one a contributor runs before a push.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+# Read-only: the gate reads the checkout and writes nothing.
+permissions:
+  contents: read
+
+# Cancel a superseded run on the same ref so a new push does not queue behind an
+# obsolete verdict.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      # Record 0001 puts the package under src/, so the verb runs out of the
+      # checkout with no install step and nothing resolved from the network. The
+      # interpreter is the one the runner carries; pinning it is issue #27, and
+      # a version literal written here would be a second place to change.
+      PYTHONPATH: src
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # No step pushes via git, so do not persist the GITHUB_TOKEN in .git/config.
+          persist-credentials: false
+      - name: Run the gate
+        run: python3 -m raumbuch gate

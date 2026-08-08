@@ -1,0 +1,4 @@
+# The pre-push hook is executed by a shell. A carriage return in it is a syntax
+# error to that shell rather than a difference in formatting, so this file is
+# checked out with line feeds on every platform.
+.githooks/pre-push text eol=lf
