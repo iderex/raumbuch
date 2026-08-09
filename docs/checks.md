@@ -2,9 +2,11 @@
 
 Every check this repository runs, what it refuses, and where it runs.
 
-A check is a leg of the gate verb. One command runs them all:
+Most of them are legs of the gate verb. One command runs those:
 
     python3 -m raumbuch gate
+
+Four are not, and the section on the names a reader sees says which and why.
 
 The table is appended to by the issue that builds a check, one row per check, and
 the surrounding text is issue #33's. That direction is chosen here so that the
@@ -288,6 +290,76 @@ against it and refuses. It carries twelve names rather than two, because a set
 of two reorders under a new seed only sometimes and a proof that fails
 occasionally is worse than none.
 
+## The names a reader sees, read off a run
+
+The table above is the gate's own names, which is what `--only` takes. What
+appears beside a commit is a job name, and the mapping is not one to one. These
+were read off runs rather than off the workflow files, because the names a
+reader sees are what a run produced:
+
+    gh api repos/iderex/raumbuch/commits/8521f91/check-runs --jq '.check_runs[].name'
+
+On a pull request, fifteen distinct names, one of which is produced twice: `build`, `unit tests`, `format`, `lint`,
+`gate`, `Decision records are well formed`, `toolchain pin`, `Determinism
+replay`, `Headless and unprivileged test contract`, `No network in the test
+suite`, `Reject Trojan Source Unicode`, `DCO sign-off`,
+`dependency-review`, `Audit workflows (zizmor)`, and `zizmor`.
+
+Four things in that list are worth knowing before it is read as a list of jobs.
+
+`Reject Trojan Source Unicode` appears twice, once for the push and once for the
+pull request, because its workflow triggers on both and a pull request from a
+branch of this repository is both events.
+
+`zizmor` and `Audit workflows (zizmor)` are two different things with one tool
+behind them. The second is the job. The first is a code-scanning check run
+created by GitHub Advanced Security when that job uploads its findings, so it
+reports on the same audit from the security tab rather than from the workflow.
+
+`Scorecard analysis` never appears on a pull request. Its workflow's trigger
+block says why in its own text: a schedule, a push to the default branch and a
+branch protection rule change, and no pull request trigger, because that path is
+experimental upstream and cannot publish results. So it is a check that exists
+and that a contributor cannot see on their own change.
+
+`update-pip-graph` appears on `main` and is declared in no workflow in this
+tree. It is GitHub's own dependency submission, which started running when
+`requirements.lock` landed:
+
+    gh api repos/iderex/raumbuch/actions/runs/31309584586 --jq '{name, path, event}'
+    {"event":"dynamic","name":"Graph Update: pip in /. #1514778074","path":"dynamic/dependabot/update-graph"}
+
+A reader counting green ticks and matching them against `.github/workflows/`
+would be one over and would not find the file.
+
+## The four that are not gate legs
+
+`DCO sign-off` reads every non-merge commit of a pull request and refuses one
+whose message carries no `Signed-off-by` matching its author. It fails closed:
+a commit range it cannot walk reddens rather than passing with nothing verified.
+
+`dependency-review` refuses a pull request that introduces a dependency with a
+known vulnerability. It runs on pull requests only, because it compares a head
+against a base and there is nothing to compare a push to.
+
+`Audit workflows (zizmor)` audits the workflow files themselves at
+`--min-severity=low`: template injection, cache poisoning, dangerous triggers,
+excessive permissions, an action pinned to a tag rather than a hash. Its version
+comes from `requirements.lock` like everything else.
+
+`Scorecard analysis` scores this repository against the OpenSSF supply-chain
+checks and publishes the score. It is a self-audit and a checklist rather than a
+guarantee, it builds and tests nothing, and it is the one check above that a
+contributor cannot see on their own change.
+
+Two comments in those workflow files describe a project that is not this one.
+The scorecard workflow's header refers twice to a release pipeline for a plugin,
+and the workflow auditor's header refers to a `publish-beta.yml` that is not in
+this tree and to an issue number from another tracker. Neither describes anything
+this repository builds. They are named here rather than repaired, because this
+file's scope is the documents and not the workflows, and issue #33 carries the
+pointer.
+
 ## What a run says, and what it does not
 
 Every declared leg appears in a report, whatever became of it. A leg that ran and
@@ -297,9 +369,13 @@ set cannot be read as a run that covered all of it.
 
 A leg whose tool is not installed reports that it did not run and what running it
 would cost. It does not pass. The `format` and `lint` legs are the two that can
-say this today, because ruff comes with the development extra:
+say this today, because ruff comes from the lockfile:
 
-    python3 -m pip install -e ".[dev]"
+    python3 -m pip install --require-hashes -r requirements.lock
+
+`headless` and `network` are the two that do not run on a workstation, each for a
+reason in its own section above, and a job that has to cover either asks for it
+with `--require`, which turns a leg that did not run into a refusal.
 
 ## What is not here
 
@@ -309,6 +385,14 @@ status check:
     gh api repos/iderex/raumbuch/rulesets/20527860 --jq '[.rules[] | select(.type=="required_status_checks") | .parameters.required_status_checks[].context]'
     []
 
-So every check in the table above runs and none of them stands behind a merge.
+So every check named in this document runs and none of them stands behind a
+merge. A reader who sees green ticks on a pull request and concludes the merge
+was gated on them is wrong. The ruleset requires a pull request, refuses a
+deletion and a force push, and carries no bypass actors, and that is the whole of
+what a merge has to pass:
+
+    gh api repos/iderex/raumbuch/rulesets/20527860 --jq '{name, enforcement, rules: [.rules[].type], bypass: .bypass_actors}'
+    {"bypass":[],"enforcement":"active","name":"gate","rules":["deletion","non_fast_forward","pull_request"]}
+
 Which of these names becomes a precondition is entry 7 of issue #2, and it is
 open.
