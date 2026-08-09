@@ -20,6 +20,7 @@ This index lists every record. A record is present here or it is not landed.
 | [0008](0008-is-this-new.md) | What is_this_new returns | Accepted |
 | [0009](0009-arithmetic-and-zero-testing.md) | Arithmetic, and zero testing where it is undecidable | Accepted |
 | [0010](0010-simplification-and-canonicalisation.md) | Simplification and index canonicalisation | Accepted |
+| [0011](0011-cost-and-the-ceiling.md) | The cost model, the declared budget and the ceiling | Accepted |
 | [0012](0012-determinism.md) | Determinism of a classification | Accepted |
 | [0013](0013-what-is-shared.md) | What is shared with findbuch, and where the boundary runs | Accepted |
 | [0014](0014-network-and-personal-data.md) | The network, and the personal data this project holds | Accepted |
