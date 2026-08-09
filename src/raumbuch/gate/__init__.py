@@ -28,6 +28,7 @@ from raumbuch.gate import (
     importing,
     layout,
     linting,
+    records,
     suite,
 )
 
@@ -80,6 +81,7 @@ class Leg:
 LEGS: tuple[Leg, ...] = (
     Leg("layout", layout.run),
     Leg("hook", hook.run),
+    Leg("records", records.run),
     Leg("build", importing.run),
     Leg("format", formatting.run),
     Leg("lint", linting.run),

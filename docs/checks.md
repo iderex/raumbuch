@@ -15,6 +15,7 @@ two half-lists. A row is added when its check exists, never in advance of one.
 | --- | --- | --- |
 | `layout` | a tree missing a directory the layout block of record 0001 names | the `gate` workflow, and the pre-push hook |
 | `hook` | a `.githooks/pre-push` carrying any instruction besides the gate invocation | the `gate` workflow, and the pre-push hook |
+| `records` | a decision record departing from the shape record 0000 fixes, and an index that misses one or points at one that is not there | the `Decision records are well formed` job of the `records` workflow, and the pre-push hook |
 | `format` | a tree the formatter would change | the `format` job of the `style` workflow, and the pre-push hook |
 | `lint` | a finding against the rule set in `pyproject.toml` | the `lint` job of the `style` workflow, and the pre-push hook |
 | `headless` | an environment where a display can be opened or elevation is granted | the `Headless and unprivileged test contract` job of the `contract` workflow |
@@ -41,6 +42,47 @@ Reformatting one would be editing a record, which record 0000 refuses.
 
 Neither leg reformats or fixes anything. A leg that repaired the tree would be a
 check that passes on a tree nobody wrote.
+
+## The decision records, and what reads their shape
+
+Record 0000 says what shape a decision record takes: the sections it carries, in
+order, the words its status may hold, and what a supersession and a correction
+look like. The `records` leg refuses a departure from that, and it reads the
+required section list and the allowed status words out of record 0000's own
+fenced blocks rather than carrying a copy. Changing a heading there changes what
+the check requires, which is the coupling the record asks for.
+
+The index is read in both directions. Every record appears in
+`docs/decisions/README.md` exactly once, and every row of it points at a file
+that exists, because an index that silently misses a record is worse than no
+index: a reader who trusts it concludes the decision was never made. A row is a
+table row anchored at the start of a line and never an occurrence of a filename,
+since the prose above the table links to record 0000 as well and that link is the
+index working rather than a second row.
+
+**A heading is a heading outside a fence.** Record 0000 writes its required
+section list inside one, and record 0003 carries a worked example whose comments
+begin with a hash. A checker scanning line by line reads twelve sections in the
+record that defines what a section is and refuses its own specification on the
+first run, which reads as a broken document rather than as a broken checker. The
+same in the other direction: the correction heading form is written out in record
+0000 inside a fence, and a scan that ignored fences would read the specification
+as an instance of the thing it specifies.
+
+The fixtures are a directory of their own rather than files under
+`docs/decisions/`. A malformed record inside the directory the check scans would
+redden the check on `main` for as long as it stayed there, so the checker takes
+the directory it judges and the fixtures live in a temporary one. That is an
+exclusion by construction rather than a list somebody could shorten without
+seeing what it held.
+
+What this leg does not judge. Whether a row's status matches the record's, and
+whether a `## Date` is a date, are both readable and neither is refused here:
+record 0000 hands this check its required sections, its status words, its two
+index directions and its two correction rules, and those are what it holds.
+Whether a `## Question` is more than a restatement of the title, and whether a
+rejected alternative carries a reason, are judgements about meaning that no
+reading of the tree makes.
 
 ## The build, in a language with no compiler
 
