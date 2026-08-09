@@ -83,19 +83,14 @@ def invoke(root: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
-def run(root: Path) -> gate.Verdict:
-    if os.environ.get(INSIDE):
-        return gate.not_run(
-            "not run: this gate run is already inside a suite this leg started, "
-            "and a suite that runs itself does not terminate. Running it costs a "
-            f"gate run outside one, which is any run where {INSIDE} is unset"
-        )
-    if not (root / SUITE).is_dir():
-        return gate.refused(
-            f"{SUITE.as_posix()}/ is not in this tree, so there is no unit suite "
-            "here to pass"
-        )
-    result = invoke(root)
+def judge(result: subprocess.CompletedProcess[str]) -> gate.Verdict:
+    """What a unittest run said, as a verdict.
+
+    This is a function rather than the tail of ``run`` because the suite is run
+    by two legs. The ``network`` leg runs the same suite in an environment with
+    no route out of it, and a second reading of a runner's output is a second
+    thing to keep in step with unittest.
+    """
     # unittest writes its report to standard error, and a test that printed
     # something wrote to standard output. Both belong to a reader of a failure.
     lines = [
@@ -125,3 +120,18 @@ def run(root: Path) -> gate.Verdict:
         shown.append(f"and {rest} more, which the run prints in full")
     ran = "of an unreported number" if total is None else f"of {total}"
     return gate.refused(f"{len(named)} test(s) {ran} did not pass\n" + "\n".join(shown))
+
+
+def run(root: Path) -> gate.Verdict:
+    if os.environ.get(INSIDE):
+        return gate.not_run(
+            "not run: this gate run is already inside a suite this leg started, "
+            "and a suite that runs itself does not terminate. Running it costs a "
+            f"gate run outside one, which is any run where {INSIDE} is unset"
+        )
+    if not (root / SUITE).is_dir():
+        return gate.refused(
+            f"{SUITE.as_posix()}/ is not in this tree, so there is no unit suite "
+            "here to pass"
+        )
+    return judge(invoke(root))
