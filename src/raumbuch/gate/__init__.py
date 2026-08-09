@@ -20,7 +20,7 @@ import sys
 from collections.abc import Callable, Collection, Iterable, Sequence
 from pathlib import Path
 
-from raumbuch.gate import formatting, headless, hook, layout, linting
+from raumbuch.gate import determinism, formatting, headless, hook, layout, linting
 
 PASSED = "passed"
 REFUSED = "refused"
@@ -68,6 +68,7 @@ LEGS: tuple[Leg, ...] = (
     Leg("hook", hook.run),
     Leg("format", formatting.run),
     Leg("lint", linting.run),
+    Leg("determinism", determinism.run),
     Leg("headless", headless.run),
 )
 
