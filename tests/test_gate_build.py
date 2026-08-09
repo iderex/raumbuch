@@ -89,6 +89,33 @@ class TheLegRefuses(unittest.TestCase):
         self.assertEqual(verdict.state, "refused")
         self.assertIn("pkg.loud: RuntimeError: no", verdict.detail)
 
+    def test_an_import_run_that_died_without_saying_which_module_died(self) -> None:
+        # The near miss of the two fixtures above, and one character from
+        # `sys.exit`. A module raising SystemExit is caught, named and reported
+        # by the import program; a module calling `os._exit` kills that program
+        # where it stands, so the run comes back non-zero with an empty report.
+        # Reading that as a clean tree is how a whole package stops being
+        # judged, so the leg fails closed and says the run could not judge.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            tree(root, {PACKAGE: "", "src/pkg/gone.py": "import os\n\nos._exit(3)\n"})
+            verdict = importing.run(root)
+        self.assertEqual(verdict.state, "refused")
+        self.assertIn("could not judge this tree", verdict.detail)
+        self.assertIn("exit 3", verdict.detail)
+        self.assertNotIn("do not import", verdict.detail)
+
+    def test_the_same_module_exiting_the_way_that_can_be_reported(self) -> None:
+        # The other half of the pair: `sys.exit` raises, so the module is named
+        # and the leg takes the reporting path rather than the fail-closed one.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            tree(root, {PACKAGE: "", "src/pkg/gone.py": "import sys\n\nsys.exit(3)\n"})
+            verdict = importing.run(root)
+        self.assertEqual(verdict.state, "refused")
+        self.assertIn("1 module(s) that do not import", verdict.detail)
+        self.assertIn("pkg.gone: SystemExit", verdict.detail)
+
     def test_a_tree_carrying_no_package_under_src(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
