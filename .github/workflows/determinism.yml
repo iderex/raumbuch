@@ -33,11 +33,21 @@ jobs:
         with:
           # No step pushes via git, so do not persist the GITHUB_TOKEN in .git/config.
           persist-credentials: false
-      - name: Install the project
-        # No development extra: this leg needs the package and the standard
-        # library and nothing else. No version is written here; they are declared
-        # in pyproject.toml and pinned by issue #27.
-        run: python3 -m pip install --disable-pip-version-check -e .
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          # The version is read out of the pin file rather than written here.
+          # A number in a workflow is the second copy the pin exists to prevent,
+          # and the `pin` leg refuses one.
+          python-version-file: .python-version
+      - name: Install the pinned tools and the project
+        # Two commands and one procedure. The first installs every distribution
+        # this repository pins, with --require-hashes, so a version that moved or
+        # a file that was replaced is refused before anything is unpacked. The
+        # second installs the package itself with no resolution of its own: it
+        # has no dependencies, and its build backend came from the line above.
+        run: |
+          python3 -m pip install --disable-pip-version-check --require-hashes -r requirements.lock
+          python3 -m pip install --disable-pip-version-check --no-deps --no-build-isolation -e .
       - name: Replay every input twice, with a different hash seed and a different worker count
         # --require turns a leg that did not run into a refusal. Without it a job
         # whose interpreter could not spawn the replay would be green over a
