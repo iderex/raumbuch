@@ -6,7 +6,9 @@ Most of them are legs of the gate verb. One command runs those:
 
     python3 -m raumbuch gate
 
-Four are not, and the section on the names a reader sees says which and why.
+Five are not. The section on the names a reader sees says which of them a reader
+meets on a change, and the fuzz job is the one that appears on neither a push nor
+a pull request.
 
 The table is appended to by the issue that builds a check, one row per check, and
 the surrounding text is issue #33's. That direction is chosen here so that the
@@ -26,6 +28,7 @@ two half-lists. A row is added when its check exists, never in advance of one.
 | `determinism` | two runs of one input, under different hash seeds and worker counts, that disagree | the `Determinism replay` job of the `determinism` workflow, and the pre-push hook |
 | `build` | a file in the tree that does not compile, or a module under `src/` that does not import | the `build` job of the `suite` workflow, and the pre-push hook |
 | `tests` | a unit suite that does not pass on the tree being judged | the `unit tests` job of the `suite` workflow, and the pre-push hook |
+| the fuzz harness | an input to the record loader or the expression parser that crashes, escapes the grammar, executes something, or builds a tree larger than its text | the `Fuzz the loader and the parser` job of the `fuzz` workflow, weekly and on request; a small campaign runs inside `tests` |
 
 ## The pin, and the three ways it stops being one
 
@@ -159,6 +162,40 @@ tree adds no files to it.
 
 Nothing is run. A module that imports and then fails when it is called is the
 suite's question.
+
+## The fuzz targets, and what each one is looking for
+
+Two components read input that did not come from here: the record loader and the
+expression parser. A catalogue is a thing people download and a record is a thing
+people write by hand. `tests/fuzz.py` generates input for both from a seed and
+judges four properties over every input it produced.
+
+`nothing-crashes` admits two outcomes from a component and no third: a value, or
+a refusal naming a reason from the closed vocabulary. Anything else is a crasher.
+
+`grammar-containment` walks what the parser built and asks that it is made of the
+declared node kinds, that every function applied is one of the declared ones, and
+that every exponent is a whole number. A parser accepting something outside its
+own grammar is how a construct nobody expects gets into a record.
+
+`nothing-executes` runs the loader under an audit hook and fails on any event
+that would mean the process ran, opened or fetched something. The loader's own
+documentation asserts that loading executes nothing; this is the difference
+between asserting it and watching it. The hook cannot be uninstalled once it is
+on, so this target runs in the harness and never inside the unit suite.
+
+`memory-is-bounded` counts the nodes the parser built and requires no more of
+them than the input had characters. Every node consumes at least one token and
+every token at least one character, so the bound is exact rather than tuned.
+
+Two things this does not do. It gates no merge: a red campaign is an issue to
+open. And it does not look for a round trip through a writer, because there is no
+writer in this tree; whether there is ever one is issue #130.
+
+Every crasher a campaign has found is kept in `tests/fuzz.py` as the input that
+produced it, with the reason it is now refused by, and `tests/test_fuzz.py` asks
+for that reason rather than only for the absence of a traceback. A crasher
+repaired into a different crash would otherwise read as fixed.
 
 ## The suite, and the name it runs under
 
@@ -332,7 +369,7 @@ tree. It is GitHub's own dependency submission, which started running when
 A reader counting green ticks and matching them against `.github/workflows/`
 would be one over and would not find the file.
 
-## The four that are not gate legs
+## The five that are not gate legs
 
 `DCO sign-off` reads every non-merge commit of a pull request and refuses one
 whose message carries no `Signed-off-by` matching its author. It fails closed:
@@ -349,8 +386,18 @@ comes from `requirements.lock` like everything else.
 
 `Scorecard analysis` scores this repository against the OpenSSF supply-chain
 checks and publishes the score. It is a self-audit and a checklist rather than a
-guarantee, it builds and tests nothing, and it is the one check above that a
-contributor cannot see on their own change.
+guarantee, and it builds and tests nothing.
+
+`Fuzz the loader and the parser` runs the campaign the section above describes,
+weekly and on request. It is a leg of nothing, on purpose: a campaign worth
+running takes minutes and its value is a different seed each time, so in front of
+every push it would cost every push and still only ever run one seed. The unit
+suite runs a small campaign at seed zero instead, which keeps the harness itself
+from rotting.
+
+Those last two are the checks a contributor cannot see on their own change. One
+publishes from the default branch only and the other is not triggered by a change
+at all.
 
 Two comments in those workflow files describe a project that is not this one.
 The scorecard workflow's header refers twice to a release pipeline for a plugin,

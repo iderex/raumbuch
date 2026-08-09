@@ -149,6 +149,21 @@ COMPARISONS: tuple[str, ...] = ("!=", "<", "<=", "=", ">", ">=")
 
 CONJUNCTION = "and"
 
+#: How deep brackets and calls may nest. The descent below is recursive, so
+#: without a bound the stack decides, and a stack running out on a file
+#: somebody downloaded is an interpreter error carrying no reason, which is the
+#: shape this project's vocabulary exists to replace. Sixty-four is far past any
+#: metric component written by hand and far short of what the descent costs in
+#: frames, so the refusal is this parser's rather than the interpreter's.
+MAX_NESTING = 64
+
+#: How many digits an integer literal may carry. The interpreter refuses its own
+#: string-to-integer conversion above a limit of its own, and that refusal
+#: arrives as a ValueError about digit limits rather than about a record. Five
+#: hundred is below 640, the smallest that limit may be set to, so this refusal
+#: cannot be overtaken by how a run was configured.
+MAX_DIGITS = 500
+
 _TOKENS = re.compile(
     r"""
     (?P<space>\s+)
@@ -243,6 +258,7 @@ class _Parser:
         self.tokens = tokens
         self.text = text
         self.at = 0
+        self.depth = 0
 
     def look(self) -> Token | None:
         return self.tokens[self.at] if self.at < len(self.tokens) else None
@@ -251,6 +267,24 @@ class _Parser:
         token = self.tokens[self.at]
         self.at += 1
         return token
+
+    def descend(self) -> None:
+        """One level further in, refusing before the stack decides.
+
+        Called at the three places that nest and nowhere else: a bracket in an
+        atom, the argument of a call, and a bracketed exponent. Counting entries
+        to :meth:`expression` instead would count the whole expression as a
+        level, and then the constant would not be the depth a reader counts in
+        the text.
+        """
+        self.depth += 1
+        if self.depth > MAX_NESTING:
+            token = self.look()
+            refusal.refuse(
+                refusal.EXPRESSION_TOO_DEEP,
+                f"brackets and calls nested more than {MAX_NESTING} deep",
+                len(self.text) if token is None else token.where,
+            )
 
     def expression(self) -> Node:
         node = self.term()
@@ -298,7 +332,9 @@ class _Parser:
             )
         if token.text == "(":
             self.take()
+            self.descend()
             value = self.exponent()
+            self.depth -= 1
             closing = self.look()
             if closing is None or closing.text != ")":
                 refusal.refuse(
@@ -323,7 +359,7 @@ class _Parser:
                 where,
             )
         self.take()
-        return sign * int(token.text)
+        return sign * self.whole(token)
 
     def atom(self) -> Node:
         token = self.look()
@@ -335,16 +371,29 @@ class _Parser:
             )
         if token.kind == "integer":
             self.take()
-            return Number(Fraction(int(token.text)))
+            return Number(Fraction(self.whole(token)))
         if token.kind == "name":
             return self.name_or_call()
         if token.text == "(":
             self.take()
+            self.descend()
             node = self.expression()
+            self.depth -= 1
             self.close(token)
             return node
         self.take()
         return self.unexpected(token)
+
+    def whole(self, token: Token) -> int:
+        """The value of an integer literal, refusing one too long to convert."""
+        if len(token.text) > MAX_DIGITS:
+            refusal.refuse(
+                refusal.NUMBER_TOO_LONG,
+                f"an integer literal of {len(token.text)} digits, and this "
+                f"language admits {MAX_DIGITS}",
+                token.where,
+            )
+        return int(token.text)
 
     def unexpected(self, token: Token) -> NoReturn:
         refusal.refuse(
@@ -378,7 +427,9 @@ class _Parser:
                 f"{token.text!r} takes one argument and was given none",
                 empty.where,
             )
+        self.descend()
         argument = self.expression()
+        self.depth -= 1
         self.close(following)
         return Apply(token.text, argument)
 
@@ -479,21 +530,36 @@ def _nothing_left(parser: _Parser) -> None:
     )
 
 
+def walk(node: Node | Condition) -> list[Node | Condition]:
+    """Every node of the tree, the root first, without recursing.
+
+    :data:`MAX_NESTING` bounds how deep a bracket may nest and bounds nothing
+    else: ``1+1+1`` repeated is one level to the parser and a tree as deep as
+    the sum is long, because the loop that reads it hangs each operation off
+    the last. A walker recursing over that tree runs out of stack on an
+    expression the parser accepted, so this one carries its own stack.
+    """
+    seen: list[Node | Condition] = []
+    pending: list[Node | Condition] = [node]
+    while pending:
+        current = pending.pop()
+        seen.append(current)
+        pending.extend(_children(current))
+    return seen
+
+
 def names(node: Node | Condition) -> frozenset[str]:
     """Every identifier the expression used, constants included.
 
     The loader subtracts the coordinates the chart declares, the parameters the
     record declares and :data:`CONSTANTS`, and refuses whatever is left.
     """
-    if isinstance(node, Name):
-        return frozenset({node.text})
-    return frozenset().union(*(names(child) for child in _children(node)))
+    return frozenset(part.text for part in walk(node) if isinstance(part, Name))
 
 
 def functions(node: Node | Condition) -> frozenset[str]:
     """Every function the expression applied."""
-    applied = frozenset({node.function}) if isinstance(node, Apply) else frozenset()
-    return applied.union(*(functions(child) for child in _children(node)), frozenset())
+    return frozenset(part.function for part in walk(node) if isinstance(part, Apply))
 
 
 def _children(node: Node | Condition) -> tuple[Node | Condition, ...]:

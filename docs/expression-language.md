@@ -276,6 +276,8 @@ that is not on this list is a reason nothing can produce.
 | `comparison-in-an-expression` | a condition written into a field that holds a value |
 | `comparison-expected` | a range or a stratum condition that restricts nothing |
 | `chained-comparison` | `0 < theta < pi`, which reads as one statement and is two |
+| `expression-too-deep` | brackets or calls nested until the recursive descent runs out of stack |
+| `number-too-long` | an integer literal past what the interpreter converts, which fails in a language about digit limits rather than about records |
 
 ## Escapes, and what refuses each one
 

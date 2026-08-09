@@ -88,6 +88,16 @@ COMPARISON_EXPECTED = "comparison-expected"
 #: than guessed at, because the guess is right until the day it is not.
 CHAINED_COMPARISON = "chained-comparison"
 
+#: Brackets or calls nested deeper than the parser will descend. Without it the
+#: descent runs out of stack on a file somebody downloaded, and an interpreter
+#: error carrying no reason is exactly what this vocabulary exists to replace.
+EXPRESSION_TOO_DEEP = "expression-too-deep"
+
+#: An integer literal with more digits than the interpreter will convert. The
+#: conversion refuses it below this parser, in a language about digit limits
+#: rather than about records, so the parser refuses it first and by name.
+NUMBER_TOO_LONG = "number-too-long"
+
 PARSER_REASONS: tuple[str, ...] = (
     EMPTY_EXPRESSION,
     NON_ASCII_CHARACTER,
@@ -104,6 +114,8 @@ PARSER_REASONS: tuple[str, ...] = (
     COMPARISON_IN_AN_EXPRESSION,
     COMPARISON_EXPECTED,
     CHAINED_COMPARISON,
+    EXPRESSION_TOO_DEEP,
+    NUMBER_TOO_LONG,
 )
 
 # The loader of issue #36. Each reason names a failure that a schema cannot

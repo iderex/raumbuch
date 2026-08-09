@@ -158,9 +158,9 @@ def _build(document: dict[str, Any], stem: str) -> Record:
         charts=charts,
         matter=_table(document, "matter"),
         provenance=_table(document, "provenance"),
-        claimed=tuple(_listing(document, "claimed")),
-        derived=tuple(_listing(document, "derived")),
-        verification=tuple(_listing(document, "verification")),
+        claimed=tuple(_entries(document, "claimed")),
+        derived=tuple(_entries(document, "derived")),
+        verification=tuple(_entries(document, "verification")),
     )
     _provenance(record)
     _values_point_somewhere(record)
@@ -501,6 +501,27 @@ def _listing(table: Any, key: str) -> list[Any]:
             f"{key} is {type(value).__name__} and this field is a list",
         )
     return value
+
+
+def _entries(document: dict[str, Any], key: str) -> list[dict[str, Any]]:
+    """A list whose every element is a table.
+
+    The parameter, stratum and chart blocks each read a required text field out
+    of an entry first, so a string where a table was due meets :func:`_present`
+    and is refused there. The claimed, derived and verification blocks are
+    carried rather than read, and the first thing that touches one of their
+    entries asks it for a key. A string has no keys, and an AttributeError
+    about ``get`` is the shape this vocabulary exists to replace.
+    """
+    entries = _listing(document, key)
+    for entry in entries:
+        if not isinstance(entry, dict):
+            refusal.refuse(
+                refusal.FIELD_OF_THE_WRONG_KIND,
+                f"an entry of {key} is {type(entry).__name__} and every entry "
+                "of that block is a table",
+            )
+    return entries
 
 
 def _table(document: dict[str, Any], key: str) -> dict[str, Any]:
