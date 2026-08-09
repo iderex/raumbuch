@@ -1,0 +1,85 @@
+name: fuzz
+
+# The check named `Fuzz the loader and the parser`. A check name is a contract:
+# once anything points at one, renaming it removes the check without removing
+# anything a reader can see, so the name is fixed here and kept.
+#
+# On a schedule rather than on a pull request, and that is the whole reason this
+# is not a leg of the gate. A campaign worth running takes minutes and its value
+# comes from running a different seed each time, so putting it in front of every
+# push would slow every push down and still only ever run one seed. The unit
+# suite runs a small campaign at seed zero on every push, which is what keeps
+# the harness itself from rotting; this is where the budget is.
+#
+# It gates nothing. No merge waits for it, and a red run here is an issue to
+# open rather than a branch to block, which is the same position the repository
+# takes on every other check today.
+#
+# The job carries no logic of its own beyond the seeds. It installs the project
+# and runs the harness in the tree, so what runs here is the same program a
+# contributor runs by hand.
+
+on:
+  # Weekly, and offset from the other scheduled job so two runners are not
+  # started in the same minute for no reason.
+  schedule:
+    - cron: "41 3 * * 2"
+  # So a campaign can be asked for after a change to either component, without
+  # waiting a week to find out.
+  workflow_dispatch:
+
+# Read-only: the harness reads the tree and writes one report beside itself.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fuzz:
+    name: Fuzz the loader and the parser
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # No step pushes via git, so do not persist the GITHUB_TOKEN in .git/config.
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          # The version is read out of the pin file rather than written here.
+          # A number in a workflow is the second copy the pin exists to prevent,
+          # and the `pin` leg refuses one.
+          python-version-file: .python-version
+      - name: Install the pinned tools and the project
+        run: |
+          python3 -m pip install --disable-pip-version-check --require-hashes -r requirements.lock
+          python3 -m pip install --disable-pip-version-check --no-deps --no-build-isolation -e .
+      - name: Run the campaign
+        # One run per seed, and the seeds are written here rather than drawn at
+        # random. A seed drawn from the clock is a crasher nobody can reproduce,
+        # and the input list of this harness is a function of its seed and of
+        # nothing else. Changing this line is how the campaign moves to fresh
+        # ground, and the diff says which ground it moved to.
+        working-directory: tests
+        run: |
+          set -o pipefail
+          status=0
+          for seed in 1 2 3 4 5 6 7 8; do
+            python3 fuzz.py --seed "$seed" --rounds 20000 | tee -a ../fuzz-report.txt || status=1
+          done
+          # Every seed runs even after one of them finds something. A campaign
+          # that stopped at the first finding would leave a report whose later
+          # seeds are absent rather than clean, and absent reads as clean.
+          exit "$status"
+      - name: Keep the report
+        # Kept whether the campaign was clean or not. A clean run is the record
+        # that the ground was covered, and a run that found something carries
+        # the seed and the input beside the finding.
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fuzz-report
+          path: fuzz-report.txt
+          if-no-files-found: error

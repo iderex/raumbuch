@@ -120,6 +120,13 @@ ONE_PER_REASON: dict[str, str] = {
     "r * / 2": refusal.UNEXPECTED_TOKEN,
     "r 2": refusal.TRAILING_INPUT,
     "r > 2*M": refusal.COMPARISON_IN_AN_EXPRESSION,
+    # One bracket past the bound, and one digit past it. Both are written from
+    # the constants rather than as literals, so the fixture follows the bound
+    # if the bound ever moves and does not quietly stop testing it.
+    "(" * (expression.MAX_NESTING + 1)
+    + "1"
+    + ")" * (expression.MAX_NESTING + 1): refusal.EXPRESSION_TOO_DEEP,
+    "1" * (expression.MAX_DIGITS + 1): refusal.NUMBER_TOO_LONG,
 }
 
 # The same, for the two reasons that only a condition field can reach.
@@ -145,6 +152,15 @@ NEAR_MISS: dict[str, str] = {
     "r * / 2": "r / 2",
     "r 2": "r*2",
     "r > 2*M": "r - 2*M",
+    # The near miss of each bound is the bound itself, which is the strongest
+    # one available: the refused fixture and the accepted one are a single
+    # bracket and a single digit apart, so an off-by-one in either direction
+    # reddens one of the two.
+    "(" * (expression.MAX_NESTING + 1) + "1" + ")" * (expression.MAX_NESTING + 1): "("
+    * expression.MAX_NESTING
+    + "1"
+    + ")" * expression.MAX_NESTING,
+    "1" * (expression.MAX_DIGITS + 1): "1" * expression.MAX_DIGITS,
 }
 
 NEAR_MISS_IN_A_CONDITION: dict[str, str] = {
