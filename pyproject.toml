@@ -1,11 +1,12 @@
 # The project, as record 0001 fixes it: Python 3 on CPython, a package under
 # src/ and a console script over it.
 #
-# Two things this file deliberately does not carry yet. The interpreter pin and
-# the hash-locked dependency set are issue #27, which is where .python-version
-# and requirements.lock land and where drift between them is refused. The
-# distribution metadata a release needs is issue #96. What is here is what the
-# skeleton needs to be a project, and no more.
+# The interpreter version is in .python-version and the hash of every file of
+# every distribution named below is in requirements.lock. This file says which
+# distributions exist; those two say which version of each arrives. The `pin`
+# leg of the gate refuses a disagreement in either direction.
+#
+# The distribution metadata a release needs is issue #96.
 
 [build-system]
 requires = ["setuptools>=77"]
@@ -18,21 +19,35 @@ description = "A verified catalogue of exact solutions of the Einstein field equ
 readme = "README.md"
 license = "AGPL-3.0-only"
 license-files = ["LICENSE"]
-# A floor rather than a pin. The version this project is run at is pinned in one
-# file by issue #27; this line says only which syntax the source may use.
+# A floor rather than a pin, and the two are different statements. This line
+# says which syntax the source may use; .python-version says which interpreter
+# every run of the gate actually uses.
 requires-python = ">=3.11"
 # Empty on purpose. Record 0001 chose SymPy as the symbolic algebra layer, and
 # nothing behind the algebra boundary is implemented, so nothing here would be
-# imported. It is declared when there is code that needs it.
+# imported. It is declared when there is code that needs it, and requirements.lock
+# gains its hashes in the same change.
 dependencies = []
 
 [project.optional-dependencies]
 # The tools a check needs and a run of the library does not. Ruff is one tool
 # doing both jobs, which is one dependency rather than two and one version to
-# pin. No version is written here: issue #27 is where every version is pinned
-# and hash-locked, in one file, and a number written in a second place is a
-# second place to change.
+# pin. No version is written here: requirements.lock is where every version and
+# every hash sits, and a number written in a second place is a second place to
+# change.
 dev = ["ruff"]
+# The workflow auditor. It is a guard's tool rather than a developer's, and it
+# is declared here anyway, in its own group so that nothing installs it by
+# accident. The argument is that a version is pinned in one file or it is pinned
+# in several: zizmor's version was a literal in the workflow that used it, and
+# the second workflow needing the same tool is what turns one literal into two
+# that disagree. A group nobody installs still gets its version and its hashes
+# from the same place as everything else.
+audit = ["zizmor"]
+# The tool that regenerates requirements.lock, which record 0001 requires to be
+# in the lock itself. A lock produced by something unpinned is a lock whose
+# contents were chosen by whatever version of the resolver ran that week.
+lock = ["uv"]
 
 [project.scripts]
 raumbuch = "raumbuch.cli:main"

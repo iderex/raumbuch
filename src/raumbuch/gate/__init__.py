@@ -31,6 +31,7 @@ from raumbuch.gate import (
     network,
     records,
     suite,
+    toolchain,
 )
 
 PASSED = "passed"
@@ -83,6 +84,7 @@ LEGS: tuple[Leg, ...] = (
     Leg("layout", layout.run),
     Leg("hook", hook.run),
     Leg("records", records.run),
+    Leg("pin", toolchain.run),
     Leg("build", importing.run),
     Leg("format", formatting.run),
     Leg("lint", linting.run),

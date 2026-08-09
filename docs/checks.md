@@ -16,6 +16,7 @@ two half-lists. A row is added when its check exists, never in advance of one.
 | `layout` | a tree missing a directory the layout block of record 0001 names | the `gate` workflow, and the pre-push hook |
 | `hook` | a `.githooks/pre-push` carrying any instruction besides the gate invocation | the `gate` workflow, and the pre-push hook |
 | `records` | a decision record departing from the shape record 0000 fixes, and an index that misses one or points at one that is not there | the `Decision records are well formed` job of the `records` workflow, and the pre-push hook |
+| `pin` | an interpreter or a distribution whose version is not held in one file, a lockfile that disagrees with the manifest, and a version literal in a workflow | the `toolchain pin` job of the `pin` workflow, and the pre-push hook |
 | `format` | a tree the formatter would change | the `format` job of the `style` workflow, and the pre-push hook |
 | `lint` | a finding against the rule set in `pyproject.toml` | the `lint` job of the `style` workflow, and the pre-push hook |
 | `headless` | an environment where a display can be opened or elevation is granted | the `Headless and unprivileged test contract` job of the `contract` workflow |
@@ -23,6 +24,56 @@ two half-lists. A row is added when its check exists, never in advance of one.
 | `determinism` | two runs of one input, under different hash seeds and worker counts, that disagree | the `Determinism replay` job of the `determinism` workflow, and the pre-push hook |
 | `build` | a file in the tree that does not compile, or a module under `src/` that does not import | the `build` job of the `suite` workflow, and the pre-push hook |
 | `tests` | a unit suite that does not pass on the tree being judged | the `unit tests` job of the `suite` workflow, and the pre-push hook |
+
+## The pin, and the three ways it stops being one
+
+A catalogue that has to reproduce a classification in five years cannot be built
+by whatever version of the toolchain the runner happened to have that week.
+Record 0006 sharpens it: a stored derived value is anchored to a digest over the
+source that produced it, and an anchor is worth something only where the thing
+it anchors can be brought back.
+
+Two files hold the versions. `.python-version` holds the interpreter, which is a
+runtime rather than a distribution to install. `requirements.lock` holds every
+distribution, pinned to one version and to the hash of every file that version
+publishes, and the install route is `pip install --require-hashes -r
+requirements.lock`, which record 0001 fixes.
+
+Every file of every version is pinned rather than the ones a runner happens to
+fetch, so a gate run on a machine this project has not been run on yet meets a
+pin rather than a resolution.
+
+The `pin` leg refuses three things. A version literal in a workflow, because the
+pin means nothing where a second copy exists and a workflow is where the second
+copy goes. A lockfile that disagrees with `pyproject.toml`, in either direction:
+a name in the manifest and not the lock is a dependency arriving unpinned, and a
+name in the lock and not the manifest is a pin for something nothing installs. A
+locked entry with no hash or pinned by anything other than `==`, because a
+version without a hash is still a name resolved at install time.
+
+**The one version literal a workflow may carry is the `# vX.Y.Z` comment after
+an action's forty character commit hash.** The hash is the pin and the comment
+is what makes it readable, so a rule that deleted it would cost the reader the
+supply-chain half of the same decision. The pattern is three parts for a
+neighbouring reason: a two-part number reaches a standard's identifier in a
+comment, which is not a version of anything this file pins.
+
+The workflow auditor's version sits in the lockfile with everything else, and
+the workflow that runs it reads it out of that file. Whether a tool used only by
+a guard belongs beside the language toolchain was the open half of issue #27,
+and this is the answer: a version is pinned in one file or it is pinned in
+several. It is declared in its own group so that nothing installs it by
+accident.
+
+What this leg does not judge. Whether the pinned version is the right one, which
+is a judgement. Whether a workflow installs from the lock at all, which is
+readable and is not refused: `.github/workflows/` is scanned for version
+literals rather than for install routes. And the container images two jobs run
+in, `python:3` in the `contract` and `isolation` workflows, which name no
+version and therefore pass. The `isolation` job's image is a `docker run`
+argument and could read the pin file; the `contract` job's is a job-level field
+where no file can be read, so pinning those two is a change to how those jobs are
+started rather than to this check.
 
 ## The formatter and the linter
 
