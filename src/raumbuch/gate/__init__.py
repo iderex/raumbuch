@@ -20,7 +20,16 @@ import sys
 from collections.abc import Callable, Collection, Iterable, Sequence
 from pathlib import Path
 
-from raumbuch.gate import determinism, formatting, headless, hook, layout, linting
+from raumbuch.gate import (
+    determinism,
+    formatting,
+    headless,
+    hook,
+    importing,
+    layout,
+    linting,
+    suite,
+)
 
 PASSED = "passed"
 REFUSED = "refused"
@@ -63,13 +72,20 @@ class Leg:
     run: Callable[[Path], Verdict]
 
 
+# In order, and the order is cheapest first among the legs that would refuse for
+# the same reason. A tree that does not compile is refused by `build` before the
+# formatter is asked what it thinks of the same file, and the suite runs last
+# because it is the most expensive thing here and the least likely to be the
+# first thing wrong.
 LEGS: tuple[Leg, ...] = (
     Leg("layout", layout.run),
     Leg("hook", hook.run),
+    Leg("build", importing.run),
     Leg("format", formatting.run),
     Leg("lint", linting.run),
     Leg("determinism", determinism.run),
     Leg("headless", headless.run),
+    Leg("tests", suite.run),
 )
 
 

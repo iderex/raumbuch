@@ -19,6 +19,8 @@ two half-lists. A row is added when its check exists, never in advance of one.
 | `lint` | a finding against the rule set in `pyproject.toml` | the `lint` job of the `style` workflow, and the pre-push hook |
 | `headless` | an environment where a display can be opened or elevation is granted | the `Headless and unprivileged test contract` job of the `contract` workflow |
 | `determinism` | two runs of one input, under different hash seeds and worker counts, that disagree | the `Determinism replay` job of the `determinism` workflow, and the pre-push hook |
+| `build` | a file in the tree that does not compile, or a module under `src/` that does not import | the `build` job of the `suite` workflow, and the pre-push hook |
+| `tests` | a unit suite that does not pass on the tree being judged | the `unit tests` job of the `suite` workflow, and the pre-push hook |
 
 ## The formatter and the linter
 
@@ -39,6 +41,51 @@ Reformatting one would be editing a record, which record 0000 refuses.
 
 Neither leg reformats or fixes anything. A leg that repaired the tree would be a
 check that passes on a tree nobody wrote.
+
+## The build, in a language with no compiler
+
+Record 0001 chose Python and said what follows: where this project wants a
+refusal at the earliest moment, it has to be a check rather than a build failure.
+The `build` leg is that check, and it asks two questions because one does not
+answer the other.
+
+Every Python file in the tree is compiled. That reaches a file nothing imports,
+which is where a syntax error survives longest. Every module under `src/` is then
+imported, which compiling proves nothing about: a name that moved, a module
+deleted from under an import and a cycle between two modules all compile and none
+of them imports.
+
+The import runs in a subprocess. Importing into the process running the gate
+would leave whatever a module does at import time inside the interpreter that
+goes on to judge the rest of the tree, and a leg that changes the thing it judges
+is not a check. The same subprocess is told to write no bytecode, so judging a
+tree adds no files to it.
+
+Nothing is run. A module that imports and then fails when it is called is the
+suite's question.
+
+## The suite, and the name it runs under
+
+The `tests` leg runs the unit suite over `tests/`, in a subprocess, out of the
+checkout the gate was given and with that checkout's `src/` ahead of anything
+installed. What is judged is the tree at that root rather than a copy of the
+project in the environment.
+
+The leg is `tests` and the check a reader sees is `unit tests`. Those are two
+different names for the same thing and the second is the contract: it is what a
+pull request shows and what entry 7 of issue #2 would make a precondition of a
+merge. The gate's own names are what `--only` takes, and the table above carries
+both.
+
+**Inside a suite this leg started, the leg does not run and the report says so.**
+The suite contains a test that runs the whole gate against this tree, so a leg
+that ran the suite unconditionally would run it from inside itself until the
+machine stopped. The subprocess carries a variable saying a gate-started suite is
+in progress, and a leg that sees it reports that it did not run, with what
+running it costs. Two consequences, and both are bounds rather than gaps. A gate
+report produced inside a suite run says the suite was not judged. And running the
+suite by hand runs it twice, once directly and once from the whole-gate test
+inside it, which is where this leg is exercised. Two is where it stops.
 
 ## The test contract
 
