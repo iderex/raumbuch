@@ -19,6 +19,7 @@ two half-lists. A row is added when its check exists, never in advance of one.
 | `format` | a tree the formatter would change | the `format` job of the `style` workflow, and the pre-push hook |
 | `lint` | a finding against the rule set in `pyproject.toml` | the `lint` job of the `style` workflow, and the pre-push hook |
 | `headless` | an environment where a display can be opened or elevation is granted | the `Headless and unprivileged test contract` job of the `contract` workflow |
+| `network` | a unit suite that reaches for the network, run where there is no route out | the `No network in the test suite` job of the `isolation` workflow |
 | `determinism` | two runs of one input, under different hash seeds and worker counts, that disagree | the `Determinism replay` job of the `determinism` workflow, and the pre-push hook |
 | `build` | a file in the tree that does not compile, or a module under `src/` that does not import | the `build` job of the `suite` workflow, and the pre-push hook |
 | `tests` | a unit suite that does not pass on the tree being judged | the `unit tests` job of the `suite` workflow, and the pre-push hook |
@@ -165,6 +166,41 @@ leaves a job green over a set it did not cover, the job asks for the leg and
 requires it: `--require headless` turns a leg that did not run into a refusal, so
 a container that lost its unprivileged user or gained a display reddens rather
 than passes.
+
+## No network in the test suite
+
+Record 0014 says the library and the command-line entry point make no network
+connection, and it names which half of that a check can refuse: the test suite.
+The `network` leg is that check.
+
+The denial belongs to the environment and never to the code being judged. A flag
+the suite sets on itself is read after the interpreter has started, and the call
+this check exists to catch is the one inside a dependency at import time, which
+runs first. So the suite is run inside a container started with `--network none`,
+which gives it a namespace holding a loopback interface and nothing else. There
+is no route out and no interface for one to be added to.
+
+The leg does not trust that denial either. It establishes that no route exists,
+then runs `tests/contract_network.py`, which tries to resolve a name and open a
+connection, and refuses if anything got out. Only then does it run the suite.
+The fixture is the inverse of the one a guard usually carries: it succeeds
+wherever a route exists, so it is run only where the answer has to be no. It is
+named so that no default pattern collects it, which is what keeps it out of
+`unit tests` rather than a note somebody has to read.
+
+**Where a route exists, this leg does not run and says so.** That is the common
+case on a workstation, and it is also why running the gate locally opens no
+connection: the route probe is a datagram socket connected to a documentation
+address, which asks the kernel which interface would carry a packet and sends
+none, and the fixture is reached only once that probe has said there is nowhere
+for a packet to go.
+
+**A green run here covers the suite and not the library.** Record 0014 states
+the bound in its own text rather than leaving a reader to work it out: a code
+path the suite never reaches can contain a connection the suite never sees. Two
+further gaps are named in that record and neither is this check. Nothing refuses
+a hard-coded address in a source file, which is issue #93, and nothing refuses a
+dependency that opens a socket of its own, which no issue holds.
 
 ## The determinism replay
 

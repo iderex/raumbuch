@@ -28,6 +28,7 @@ from raumbuch.gate import (
     importing,
     layout,
     linting,
+    network,
     records,
     suite,
 )
@@ -87,6 +88,7 @@ LEGS: tuple[Leg, ...] = (
     Leg("lint", linting.run),
     Leg("determinism", determinism.run),
     Leg("headless", headless.run),
+    Leg("network", network.run),
     Leg("tests", suite.run),
 )
 
