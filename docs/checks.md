@@ -18,6 +18,7 @@ two half-lists. A row is added when its check exists, never in advance of one.
 | `format` | a tree the formatter would change | the `format` job of the `style` workflow, and the pre-push hook |
 | `lint` | a finding against the rule set in `pyproject.toml` | the `lint` job of the `style` workflow, and the pre-push hook |
 | `headless` | an environment where a display can be opened or elevation is granted | the `Headless and unprivileged test contract` job of the `contract` workflow |
+| `determinism` | two runs of one input, under different hash seeds and worker counts, that disagree | the `Determinism replay` job of the `determinism` workflow, and the pre-push hook |
 
 ## The formatter and the linter
 
@@ -75,6 +76,41 @@ leaves a job green over a set it did not cover, the job asks for the leg and
 requires it: `--require headless` turns a leg that did not run into a refusal, so
 a container that lost its unprivileged user or gained a display reddens rather
 than passes.
+
+## The determinism replay
+
+Record 0012 promises that two runs of the same input produce the same record.
+The `determinism` leg replays every declared input twice inside one gate run and
+compares what came back.
+
+The two runs differ in two ways and each catches something the other does not. A
+different hash seed moves the native iteration order of a set or a map, which is
+the cheapest way to break the property and the hardest to notice. A different
+worker count, greater than one in at least one of the two runs, is what record
+0012 requires outright: two single-threaded runs of the same code agree for
+reasons that have nothing to do with the property, and a check made of those
+would pass on a tree that violated it everywhere.
+
+A hash seed is read once when an interpreter starts, so each run is a
+subprocess. Both run the same module, so what is replayed is the code the leg is
+about.
+
+The comparison drops the excluded fields, which are a list in the leg rather
+than a rule a reader reconstructs. A date changes between two runs by
+construction and a cost is a measurement of a run rather than of a geometry, and
+record 0012 puts both outside the promise. What else joins the list is issue
+#56, where a finished run first writes a record carrying those fields.
+
+The inputs today are the loader and the record round-trip, which is what exists.
+Adding one is one line. Extending the check to the classifier is issue #121.
+
+A fixture whose output depends on iteration order is declared beside the inputs
+and is never replayed by the leg, because a fixture that violates the property
+cannot be an input the gate replays without the gate being red for ever. It is
+reached by name from `tests/test_gate_determinism.py`, where the leg is run
+against it and refuses. It carries twelve names rather than two, because a set
+of two reorders under a new seed only sometimes and a proof that fails
+occasionally is worse than none.
 
 ## What a run says, and what it does not
 
