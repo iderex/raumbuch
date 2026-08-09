@@ -2,24 +2,24 @@
 
 ## From a clone to a green gate
 
-Four commands, and the fourth is the gate. They were run in this order on a
-fresh clone, and what came back is in the pull request body of issue #33 rather
-than asserted here.
+Four commands, and the fourth is the gate. They were run in this order, and what
+came back is in the pull request body of issue #128 rather than asserted here.
 
-    python3 -m venv ../raumbuch-env
-    ../raumbuch-env/bin/pip install --require-hashes -r requirements.lock
-    ../raumbuch-env/bin/pip install --no-deps --no-build-isolation -e .
-    ../raumbuch-env/bin/python -m raumbuch gate
+    python3 -m venv .venv
+    .venv/bin/pip install --require-hashes -r requirements.lock
+    .venv/bin/pip install --no-deps --no-build-isolation -e .
+    .venv/bin/python -m raumbuch gate
 
 On Windows the environment's programs are under `Scripts` rather than `bin` and
-everything else is the same.
+everything else is the same. The run behind that pull request body is a Windows
+one; the `bin` spelling above is the same route on another platform and was not
+run for it.
 
-**The environment goes beside the clone rather than inside it.** The `build` leg
-compiles every Python file under the root it is given, and a `.venv` in the
-checkout is several hundred files this repository did not write. It does not
-redden the gate today, and it is a set the run reports as though it were the
-tree. Issue #128 is where the leg learns to leave an environment alone; until
-then, the path above is the one that judges this project and only this project.
+The environment goes in the checkout, which is where `.gitignore` already
+expects one. The `build` leg prunes a directory carrying `pyvenv.cfg` and
+everything under it, so what it compiles and the count it reports are this
+project's own files and a dependency's syntax is not between you and a green
+leg.
 
 The interpreter version is in `.python-version` and nothing chooses it for you:
 a `python3` that is not that version runs the gate anyway, and the `pin` leg

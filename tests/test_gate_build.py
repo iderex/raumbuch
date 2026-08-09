@@ -51,6 +51,76 @@ class WhatCountsAsTheTree(unittest.TestCase):
         self.assertEqual(found, [PACKAGE])
         self.assertEqual(verdict.state, "passed", verdict.detail)
 
+    def test_a_virtual_environment_in_the_checkout_is_not_the_tree(self) -> None:
+        # The file under the environment does not compile, so if the leg reads
+        # it at all this fixture is red. What is proved is the pruning and not
+        # only the count: a passing verdict here is the leg never having opened
+        # a file this repository did not write.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            tree(
+                root,
+                {
+                    PACKAGE: "",
+                    ".venv/pyvenv.cfg": "home = /usr/bin\nversion = 3.14.6\n",
+                    ".venv/lib/site-packages/dep/__init__.py": "def (",
+                },
+            )
+            found = [path.as_posix() for path in importing.sources(root)]
+            verdict = importing.run(root)
+        self.assertEqual(found, [PACKAGE])
+        self.assertEqual(verdict.state, "passed", verdict.detail)
+        self.assertIn("1 file(s) compile", verdict.detail)
+
+    def test_the_same_directory_without_the_marker_is_the_tree(self) -> None:
+        # The near miss of the fixture above, and the whole distance between
+        # them is one file. A rule reading the directory name would leave this
+        # one alone too, and a directory somebody called `.venv` and wrote code
+        # in is work this repository is answerable for.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            tree(
+                root, {PACKAGE: "", ".venv/lib/site-packages/dep/__init__.py": "def ("}
+            )
+            verdict = importing.run(root)
+        self.assertEqual(verdict.state, "refused")
+        self.assertIn(".venv/lib/site-packages/dep/__init__.py", verdict.detail)
+
+    def test_an_environment_under_a_name_no_list_would_carry(self) -> None:
+        # The other direction of the same near miss. The name here is one
+        # nobody would put in a list of names for an environment, and the
+        # marker says what it is.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            tree(
+                root,
+                {
+                    PACKAGE: "",
+                    "py314/pyvenv.cfg": "home = /usr/bin\n",
+                    "py314/lib/dep.py": "def (",
+                },
+            )
+            found = [path.as_posix() for path in importing.sources(root)]
+        self.assertEqual(found, [PACKAGE])
+
+    def test_an_environment_under_src_contributes_no_module_name(self) -> None:
+        # The import half asks the same question separately, so it needs the
+        # same answer. An environment installed under `src/` would otherwise be
+        # imported module by module into a subprocess this leg then reads a
+        # verdict out of.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            tree(
+                root,
+                {
+                    PACKAGE: "",
+                    "src/.venv/pyvenv.cfg": "home = /usr/bin\n",
+                    "src/.venv/lib/dep/__init__.py": "",
+                },
+            )
+            names = importing.modules(root)
+        self.assertEqual(names, ["pkg"])
+
     def test_a_package_is_named_by_its_directory_and_not_by_its_init(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

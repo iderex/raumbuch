@@ -36,11 +36,28 @@ from raumbuch import gate
 
 PACKAGE = Path("src")
 
-# Directories that are not the tree. A checkout carries build artefacts, caches
-# and, on a developer's machine, an environment, and none of them is work this
-# repository is answerable for. The set is written here rather than derived from
-# git, so this leg judges a plain directory and needs no repository to do it.
+# Directories that are not the tree. A checkout carries build artefacts and
+# caches, and none of them is work this repository is answerable for. The set is
+# written here rather than derived from git, so this leg judges a plain
+# directory and needs no repository to do it.
 NOT_THE_TREE = frozenset({".git", ".ruff_cache", "__pycache__", "build", "dist"})
+
+# The file at the root of a virtual environment, which is where the interpreter
+# itself looks to find out that it is in one. A directory carrying it, and
+# everything under it, is not the tree.
+#
+# The marker rather than the name. `.venv`, `venv`, `env` and a bare version
+# number are all names people give an environment, and each of them is also a
+# name this repository could give a directory it wrote, so a list of names is
+# wrong in both directions at once. The marker is written by the module that
+# creates the environment and is not something anyone chooses.
+#
+# What it is for: an environment in the checkout is several hundred files
+# somebody else wrote. Compiling them makes the count in the report a number
+# about an environment rather than about this project, and it puts a
+# dependency's syntax between this repository and a green leg whose whole
+# subject is this repository's own source.
+ENVIRONMENT_MARKER = "pyvenv.cfg"
 
 # How many failures are printed before the count stands in for the rest. A
 # hundred import errors from one deleted module are one fault, and a reader
@@ -65,16 +82,36 @@ sys.exit(1 if failed else 0)
 """
 
 
-def in_the_tree(relative: Path) -> bool:
-    return not any(
-        part in NOT_THE_TREE or part.endswith(".egg-info") for part in relative.parts
-    )
+def is_an_environment(directory: Path) -> bool:
+    return (directory / ENVIRONMENT_MARKER).is_file()
+
+
+def python_files(root: Path) -> list[Path]:
+    """Every Python file under the root, in a fixed order.
+
+    What is not the tree is pruned during the walk rather than filtered out of
+    its result. A directory this leg has decided it is not answerable for is
+    then never descended into, so the environment nobody asked it to read costs
+    nothing to skip, and one place decides what the tree is for both questions
+    the leg asks.
+    """
+    found: list[Path] = []
+    for current, directories, files in os.walk(root):
+        here = Path(current)
+        directories[:] = [
+            name
+            for name in directories
+            if name not in NOT_THE_TREE
+            and not name.endswith(".egg-info")
+            and not is_an_environment(here / name)
+        ]
+        found.extend(here / name for name in files if name.endswith(".py"))
+    return sorted(found)
 
 
 def sources(root: Path) -> list[Path]:
     """Every Python file of the tree, relative to the root, in a fixed order."""
-    found = (path.relative_to(root) for path in root.rglob("*.py"))
-    return sorted(path for path in found if in_the_tree(path))
+    return [path.relative_to(root) for path in python_files(root)]
 
 
 def modules(root: Path) -> list[str]:
@@ -85,10 +122,8 @@ def modules(root: Path) -> list[str]:
     """
     source_root = root / PACKAGE
     names = []
-    for path in sorted(source_root.rglob("*.py")):
+    for path in python_files(source_root):
         relative = path.relative_to(source_root)
-        if not in_the_tree(relative):
-            continue
         parts = list(relative.with_suffix("").parts)
         if parts[-1] == "__init__":
             parts.pop()
