@@ -106,10 +106,147 @@ PARSER_REASONS: tuple[str, ...] = (
     CHAINED_COMPARISON,
 )
 
-#: Every reason anything here may be refused for. Issue #36 adds the loader's
-#: reasons to this tuple beside the parser's, and nothing outside it is a
-#: reason :func:`refuse` will accept.
-REASONS: tuple[str, ...] = PARSER_REASONS
+# The loader of issue #36. Each reason names a failure that a schema cannot
+# see, because a schema reads one document and the loader reads the shape
+# around it. Where the two overlap the loader refuses anyway: a loader that
+# trusts a check it does not run accepts whatever reaches it.
+
+#: Bytes that are not a TOML document at all.
+NOT_A_DOCUMENT = "not-a-document"
+
+#: A required field absent. The detail names which, because "invalid record" is
+#: what this vocabulary exists to replace.
+FIELD_MISSING = "field-missing"
+
+#: A field present and of the wrong kind, which is where a loader that read it
+#: anyway would fail somewhere else with a message about neither.
+FIELD_OF_THE_WRONG_KIND = "field-of-the-wrong-kind"
+
+#: A ``schema_version`` this loader does not read. Record 0003 makes a second
+#: format a second file, so a record from the future is refused rather than
+#: read with the fields that happen to match.
+UNKNOWN_SCHEMA_VERSION = "unknown-schema-version"
+
+#: An ``id`` that is not the filename stem. Record 0004: two people adding the
+#: same solution collide on one path, and that only holds while the id and the
+#: path are the same fact.
+ID_IS_NOT_THE_FILENAME = "id-is-not-the-filename"
+
+#: A ``dimension`` other than four. Record 0002 names the loader as what
+#: refuses a record nothing in this project can classify.
+DIMENSION_IS_NOT_FOUR = "dimension-is-not-four"
+
+#: No stratum marked generic. Record 0005: without one, nothing says what the
+#: family is away from its special cases.
+NO_GENERIC_STRATUM = "no-generic-stratum"
+
+#: More than one generic stratum, which is two answers to that question.
+TWO_GENERIC_STRATA = "two-generic-strata"
+
+#: An identifier in a metric component or a coordinate range that is neither a
+#: coordinate of that chart, nor a parameter of the record, nor a named
+#: constant. This is what stops a record smuggling in a symbol whose meaning a
+#: reader cannot see.
+UNDECLARED_IDENTIFIER = "undeclared-identifier"
+
+#: The same, in a stratum condition or a parameter range, where there is no
+#: chart and so no coordinate is in scope either.
+STRATUM_NAMES_AN_UNDECLARED_PARAMETER = "stratum-names-an-undeclared-parameter"
+
+#: A metric component indexed by something the chart does not declare as a
+#: coordinate.
+METRIC_INDEX_IS_NOT_A_COORDINATE = "metric-index-is-not-a-coordinate"
+
+#: One index pair written twice. Taking the last one silently is how the other
+#: is lost without anybody seeing it go.
+METRIC_COMPONENT_DECLARED_TWICE = "metric-component-declared-twice"
+
+#: An index pair and its transpose. The metric is symmetric, so this is the
+#: same component twice rather than two components.
+METRIC_COMPONENT_TRANSPOSED = "metric-component-transposed"
+
+#: A component below the diagonal in the declared coordinate order. Record 0003
+#: says write only the components with ``i`` at or before ``j``, and a record
+#: half in one convention is a record whose symmetry nobody checked.
+METRIC_COMPONENT_OUT_OF_ORDER = "metric-component-out-of-order"
+
+#: A chart after the first with no relation to another. Record 0005: this is
+#: the mistake that turns one entry into two catalogues.
+CHART_WITHOUT_A_RELATION = "chart-without-a-relation"
+
+#: A chart relation outside the closed vocabulary of record 0005.
+CHART_RELATION_OUTSIDE_THE_VOCABULARY = "chart-relation-outside-the-vocabulary"
+
+#: A chart relation naming a chart the record does not declare.
+CHART_RELATION_NAMES_NO_CHART = "chart-relation-names-no-chart"
+
+#: A claimed, derived or verification entry naming a stratum that does not
+#: exist. Record 0005 attaches every value to a stratum, so this is a value
+#: nobody can say where it holds.
+VALUE_NAMES_NO_STRATUM = "value-names-no-stratum"
+
+#: The same, for a chart.
+VALUE_NAMES_NO_CHART = "value-names-no-chart"
+
+#: A ``source_kind`` outside the closed vocabulary of record 0006.
+SOURCE_KIND_OUTSIDE_THE_VOCABULARY = "source-kind-outside-the-vocabulary"
+
+#: A verification state outside record 0006's four words. A fifth word is an
+#: amendment to that record and not a value written into a file.
+VERIFICATION_STATE_OUTSIDE_THE_VOCABULARY = "verification-state-outside-the-vocabulary"
+
+#: A verification entry that says it recomputed and names no command.
+RECOMPUTATION_WITH_NO_COMMAND = "recomputation-with-no-command"
+
+#: One that says it was checked against a publication and names none.
+PUBLICATION_CHECK_WITH_NO_PUBLICATION = "publication-check-with-no-publication"
+
+#: One that says it was cross-checked and names no implementation.
+CROSS_CHECK_WITH_NO_IMPLEMENTATION = "cross-check-with-no-implementation"
+
+#: A derived entry with no command, commit or date. Record 0003: a derived
+#: field transcribed from a book instead of computed is the defect this project
+#: exists to remove, and a blank where the run should be is how it arrives.
+DERIVED_ENTRY_WITHOUT_ITS_STAMP = "derived-entry-without-its-stamp"
+
+#: A derived value carrying no verification entry at all, which record 0006
+#: refuses and which needs both blocks to see.
+DERIVED_VALUE_WITH_NO_VERIFICATION = "derived-value-with-no-verification"
+
+LOADER_REASONS: tuple[str, ...] = (
+    NOT_A_DOCUMENT,
+    FIELD_MISSING,
+    FIELD_OF_THE_WRONG_KIND,
+    UNKNOWN_SCHEMA_VERSION,
+    ID_IS_NOT_THE_FILENAME,
+    DIMENSION_IS_NOT_FOUR,
+    NO_GENERIC_STRATUM,
+    TWO_GENERIC_STRATA,
+    UNDECLARED_IDENTIFIER,
+    STRATUM_NAMES_AN_UNDECLARED_PARAMETER,
+    METRIC_INDEX_IS_NOT_A_COORDINATE,
+    METRIC_COMPONENT_DECLARED_TWICE,
+    METRIC_COMPONENT_TRANSPOSED,
+    METRIC_COMPONENT_OUT_OF_ORDER,
+    CHART_WITHOUT_A_RELATION,
+    CHART_RELATION_OUTSIDE_THE_VOCABULARY,
+    CHART_RELATION_NAMES_NO_CHART,
+    VALUE_NAMES_NO_STRATUM,
+    VALUE_NAMES_NO_CHART,
+    SOURCE_KIND_OUTSIDE_THE_VOCABULARY,
+    VERIFICATION_STATE_OUTSIDE_THE_VOCABULARY,
+    RECOMPUTATION_WITH_NO_COMMAND,
+    PUBLICATION_CHECK_WITH_NO_PUBLICATION,
+    CROSS_CHECK_WITH_NO_IMPLEMENTATION,
+    DERIVED_ENTRY_WITHOUT_ITS_STAMP,
+    DERIVED_VALUE_WITH_NO_VERIFICATION,
+)
+
+#: Every reason anything here may be refused for, and nothing outside it is a
+#: reason :func:`refuse` will accept. Issue #41 adds the refusals of record
+#: 0004 that need the catalogue rather than one record; the tuple is written to
+#: be added to.
+REASONS: tuple[str, ...] = PARSER_REASONS + LOADER_REASONS
 
 
 class Refused(Exception):
