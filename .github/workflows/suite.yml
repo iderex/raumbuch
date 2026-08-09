@@ -1,0 +1,73 @@
+name: suite
+
+# Two checks with the names they keep, `build` and `unit tests`. A check name is
+# a contract: once anything points at one, renaming it removes the check without
+# removing anything a reader can see, so the names are fixed here and kept.
+#
+# Neither job carries logic of its own. Each installs the project and asks the
+# gate verb for one leg, so what refuses on a runner is the same code that
+# refuses before a push, and there is no second copy of a build or a test
+# invocation in YAML to drift from the one a contributor runs.
+#
+# They are separate jobs because they are separate checks. A reader looking at a
+# pull request sees which of the two refused without opening a log, and entry 7
+# of issue #2, where the required checks of a merge are decided, is a decision
+# about names.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+# Read-only: both legs read the tree, run subprocesses over it, and write
+# nothing back to it.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # No step pushes via git, so do not persist the GITHUB_TOKEN in .git/config.
+          persist-credentials: false
+      - name: Install the project
+        # No development extra: this leg needs the package and the standard
+        # library and nothing else. No version is written here; they are
+        # declared in pyproject.toml and pinned by issue #27.
+        run: python3 -m pip install --disable-pip-version-check -e .
+      - name: Compile every file and import every module
+        # --require turns a leg that did not run into a refusal. The leg has no
+        # route today by which it does not run, and the flag is what stops a
+        # later one from being green in silence.
+        run: python3 -m raumbuch gate --only build --require build
+
+  tests:
+    name: unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install the project and its development extra
+        # The extra is installed here and not in the build job above, because
+        # the suite covers the `format` and `lint` legs from inside the
+        # whole-gate test, and a leg whose tool is absent reports that it did
+        # not run. Without the extra this job would be green over a set two
+        # legs sat out.
+        run: python3 -m pip install --disable-pip-version-check -e ".[dev]"
+      - name: Run the whole unit suite
+        # --require, for the reason above and one more: this leg declines when
+        # it is already inside a suite it started, so a misconfigured job that
+        # inherited that variable would otherwise report green having run
+        # nothing.
+        run: python3 -m raumbuch gate --only tests --require tests
