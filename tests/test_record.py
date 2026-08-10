@@ -271,6 +271,7 @@ class EveryReasonIsReachable(unittest.TestCase):
             set(refusal.LOADER_REASONS),
             set(refusal.CATALOGUE_REASONS),
             set(refusal.CURVATURE_REASONS),
+            set(refusal.CLASSIFICATION_REASONS),
         )
         for first, second in itertools.combinations(range(len(groups)), 2):
             self.assertEqual(groups[first] & groups[second], set())

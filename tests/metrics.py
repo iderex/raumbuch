@@ -20,7 +20,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
-from raumbuch import algebra, curvature, record, refusal
+from raumbuch import algebra, curvature, petrov, record, refusal
 
 ROOT = Path(__file__).resolve().parents[1]
 RECORD_FORMAT = ROOT / "docs" / "record-format.md"
@@ -118,6 +118,44 @@ def unharmonic_profile() -> algebra.Value:
     return _profile(algebra.add)
 
 
+def standing_profile() -> algebra.Value:
+    """``x^2 - y^2``, harmonic and carrying no free function.
+
+    The two profiles above carry ``h(u)``, and whether a free function is the
+    zero function is not decidable in the alphabet record 0009 declares, so a
+    classification of a wave carrying one is refused rather than guessed. This
+    profile is the same geometry with the amplitude written down, which is what
+    a fixture about the type rather than about the refusal needs.
+    """
+    return algebra.subtract(
+        algebra.power(algebra.symbol("x"), 2), algebra.power(algebra.symbol("y"), 2)
+    )
+
+
+def weyl_scalars(subject: curvature.Geometry) -> tuple[algebra.Value, ...]:
+    """``Psi_0`` to ``Psi_4`` for a **vacuum** geometry, read off the frame Riemann.
+
+    In vacuum the Weyl tensor is the Riemann tensor, so the five scalars are
+    five frame components and no trace has to be removed. That is the whole
+    reason this is here rather than in the module: the general extraction needs
+    the Ricci part, which is issue #45, and a second implementation of it inside
+    a test would be the thing that disagrees with the first.
+
+    **Nothing here checks that the geometry is a vacuum.** The caller passes one
+    that is, and the tests beside this file are where that is established.
+    """
+    tensor = curvature.lowered(subject, curvature.riemann(subject))
+    frame = curvature.tetrad_from_metric(subject)
+    components = curvature.frame_components(subject, tensor, frame)
+    return (
+        components[("l", "m", "l", "m")],
+        components[("l", "n", "l", "m")],
+        components[("l", "m", "mbar", "n")],
+        components[("l", "n", "mbar", "n")],
+        components[("n", "mbar", "n", "mbar")],
+    )
+
+
 def kerr_shape() -> curvature.Geometry:
     """The shape Boyer-Lindquist coordinates give Kerr: a metric off the blocks.
 
@@ -200,8 +238,8 @@ def _broken_tetrad() -> None:
     curvature.tetrad(subject, (frame.leg("l"), frame.leg("n"), scaled))
 
 
-#: One fixture per curvature reason, which is the third corpus beside the two
-#: that hold records. Every reason in the vocabulary of
+#: One fixture per reason the arithmetic raises, which is the third corpus
+#: beside the two that hold records. Every reason in the vocabulary of
 #: :mod:`raumbuch.refusal` has a fixture in exactly one of the three, and
 #: `tests/test_corpus.py` is where that union is compared against the
 #: vocabulary so a reason cannot be added without one.
@@ -214,7 +252,25 @@ REFUSED: dict[str, Callable[[], None]] = {
         unrooted()
     ),
     refusal.TETRAD_CONDITION_FAILS: _broken_tetrad,
+    refusal.ZERO_TEST_UNDECIDED: lambda: petrov.classify(_free_amplitude()),
 }
+
+
+def _free_amplitude() -> tuple[algebra.Value, ...]:
+    """A scalar set whose top scalar is a free function of one coordinate.
+
+    Whether a free function is the zero function is not decidable in the
+    alphabet record 0009 declares, and here it is the difference between a
+    plane wave and flat space, so the classification refuses rather than
+    branching on a test it did not decide.
+    """
+    return (
+        algebra.integer(0),
+        algebra.integer(0),
+        algebra.integer(0),
+        algebra.integer(0),
+        algebra.free_function("h", (algebra.symbol("u"),)),
+    )
 
 
 def _spherical(profile: algebra.Value) -> curvature.Geometry:

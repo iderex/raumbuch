@@ -334,6 +334,18 @@ FRAME_CONSTRUCTION_LEAVES_THE_FIELD = "frame-construction-leaves-the-field"
 #: do not hold.
 TETRAD_CONDITION_FAILS = "tetrad-condition-fails"
 
+# The classification of issue #46. Record 0009 gives the zero test three
+# answers, and this is the reason the third one produces where a branch depends
+# on it.
+
+#: A zero test the arithmetic did not decide, where a discrete step needs it
+#: decided. Record 0009: the software can tell a decision from a hope, and a
+#: Petrov type reported off an undecided test would be indistinguishable from
+#: one that was decided.
+ZERO_TEST_UNDECIDED = "zero-test-undecided"
+
+CLASSIFICATION_REASONS: tuple[str, ...] = (ZERO_TEST_UNDECIDED,)
+
 CURVATURE_REASONS: tuple[str, ...] = (
     METRIC_IS_DEGENERATE,
     FRAME_IS_NOT_BLOCK_PAIRED,
@@ -344,10 +356,14 @@ CURVATURE_REASONS: tuple[str, ...] = (
 #: Every reason anything here may be refused for, and nothing outside it is a
 #: reason :func:`refuse` will accept. The groups are what does the reading: the
 #: parser reads one string, the loader reads one document, the index reads the
-#: set of records, and the curvature reads none of them and refuses about the
+#: set of records, and the last two read none of them and refuse about the
 #: arithmetic instead. The tuple is written to be added to.
 REASONS: tuple[str, ...] = (
-    PARSER_REASONS + LOADER_REASONS + CATALOGUE_REASONS + CURVATURE_REASONS
+    PARSER_REASONS
+    + LOADER_REASONS
+    + CATALOGUE_REASONS
+    + CURVATURE_REASONS
+    + CLASSIFICATION_REASONS
 )
 
 

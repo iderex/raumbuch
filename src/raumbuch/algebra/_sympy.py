@@ -255,6 +255,19 @@ def _square_root(held: sympy.Expr) -> sympy.Expr | None:
     return root
 
 
+def is_constant(value: Value) -> bool:
+    """Whether the value is a number rather than an expression that varies.
+
+    What a caller does with this is decide whether a branch exists. An
+    expression that is not identically zero still vanishes somewhere, and a
+    classification that depends on it therefore depends on where it is
+    evaluated; a non-zero number vanishes nowhere and opens no case.
+    """
+    return not value.held.free_symbols and not value.held.atoms(
+        sympy.core.function.AppliedUndef, sympy.Derivative
+    )
+
+
 def text(value: Value) -> str:
     """The value as a string, for the detail of a refusal and for nothing else."""
     return str(value.held)
