@@ -18,13 +18,16 @@ check it does not run is a loader that accepts whatever reaches it.
 
 The refusals of record 0004 that need the catalogue rather than the record - a
 `supersedes` naming an id that is not in the index, a half-written link between
-two records, a `correction` list with a gap in it - are issue #41 and are not
-here. The vocabulary is written to be added to.
+two records, a `correction` list with a gap in it - are :mod:`raumbuch.catalogue`
+and are not here. The three fields those refusals read are carried by the record
+below, because a field nothing parses is a field the index would have to reach
+back into the raw document for.
 """
 
 from __future__ import annotations
 
 import dataclasses
+import re
 import tomllib
 from pathlib import Path
 from typing import Any
@@ -40,6 +43,12 @@ DIMENSION = 4
 #: record format is a second schema file and a second loader path, per record
 #: 0003, and never a widening of this one.
 SCHEMA_VERSION = "1"
+
+#: The slug of record 0004, which the schema carries as the same pattern. It is
+#: written twice on purpose: a record reaching a consumer through the loader
+#: alone meets no schema, and nothing in the gate applies the schema until issue
+#: #43 lands.
+ID = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
 #: Record 0005. A relation outside this is a fifth kind of chart relationship
 #: nobody has argued for.
@@ -98,6 +107,9 @@ class Record:
 
     id: str
     version: int
+    supersedes: tuple[str, ...]
+    superseded_by: str | None
+    corrections: tuple[dict[str, Any], ...]
     name: str
     aliases: tuple[str, ...]
     dimension: int
@@ -148,6 +160,13 @@ def _build(document: dict[str, Any], stem: str) -> Record:
     record = Record(
         id=_text(document, "id"),
         version=_whole(document, "version"),
+        supersedes=tuple(_names(document, "supersedes")),
+        superseded_by=(
+            None
+            if "superseded_by" not in document
+            else _text(document, "superseded_by")
+        ),
+        corrections=tuple(_entries(document, "correction")),
         name=_text(document, "name"),
         aliases=tuple(_listing(document, "aliases")),
         dimension=_whole(document, "dimension"),
@@ -181,6 +200,13 @@ def _identity(document: dict[str, Any], stem: str) -> None:
         refusal.refuse(
             refusal.ID_IS_NOT_THE_FILENAME,
             f"the id is {identifier!r} and the file is {stem!r}.toml",
+        )
+    if not ID.fullmatch(identifier):
+        refusal.refuse(
+            refusal.ID_OUTSIDE_THE_GRAMMAR,
+            f"the id {identifier!r} is not lowercase letters and digits in "
+            "groups separated by single hyphens, which is the slug record 0004 "
+            "fixes",
         )
     dimension = _whole(document, "dimension")
     if dimension != DIMENSION:
@@ -501,6 +527,25 @@ def _listing(table: Any, key: str) -> list[Any]:
             f"{key} is {type(value).__name__} and this field is a list",
         )
     return value
+
+
+def _names(table: Any, key: str) -> list[str]:
+    """A list whose every element is text.
+
+    ``supersedes`` holds ids, and an id is compared against the index by
+    equality. A number in that list compares equal to nothing and would read
+    downstream as an id the catalogue does not hold, which is a different
+    refusal from the one the record earned.
+    """
+    listed = _listing(table, key)
+    for element in listed:
+        if not isinstance(element, str):
+            refusal.refuse(
+                refusal.FIELD_OF_THE_WRONG_KIND,
+                f"an entry of {key} is {type(element).__name__} and every entry "
+                "of that list is text",
+            )
+    return listed
 
 
 def _entries(document: dict[str, Any], key: str) -> list[dict[str, Any]]:

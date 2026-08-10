@@ -22,6 +22,7 @@ two half-lists. A row is added when its check exists, never in advance of one.
 | `layout` | a tree missing a directory the layout block of record 0001 names | the `gate` workflow, and the pre-push hook |
 | `hook` | a `.githooks/pre-push` carrying any instruction besides the gate invocation | the `gate` workflow, and the pre-push hook |
 | `records` | a decision record departing from the shape record 0000 fixes, and an index that misses one or points at one that is not there | the `Decision records are well formed` job of the `records` workflow, and the pre-push hook |
+| `index` | a catalogue spending one id on two records, a supersession pointing at nothing or written from one end, and a correction list that does not run to its record's version | the `gate` workflow, and the pre-push hook |
 | `pin` | an interpreter or a distribution whose version is not held in one file, a lockfile that disagrees with the manifest, and a version literal in a workflow | the `toolchain pin` job of the `pin` workflow, and the pre-push hook |
 | `format` | a tree the formatter would change | the `format` job of the `style` workflow, and the pre-push hook |
 | `lint` | a finding against the rule set in `pyproject.toml` | the `lint` job of the `style` workflow, and the pre-push hook |
@@ -143,6 +144,49 @@ index directions and its two correction rules, and those are what it holds.
 Whether a `## Question` is more than a restatement of the title, and whether a
 rejected alternative carries a reason, are judgements about meaning that no
 reading of the tree makes.
+
+## The identifier, and the three things a directory can decide about it
+
+Record 0004 makes an entry's identity the pair `id` and `version`. The `id` is
+the primary key and the thing a citation names, the `version` is what a citer
+adds when they want to be told the thing they cited has moved, and neither is
+worth anything without something that reads every record at once. The `index`
+leg is that something.
+
+It refuses four things and each is a different way the pair stops identifying.
+Two records under one id, which is two answers to one citation. A supersession
+naming a record the catalogue does not hold, so a reader following it arrives
+nowhere. A supersession written from one end, which serves whichever of the two
+readers came from the other side and not the one who came from this one. And a
+correction list that is not exactly the versions from 2 up to the record's own,
+because that list is the history a consumer reads instead of the old copy they
+cannot have, so a gap in it is a correction nobody is told about.
+
+**A green run here covers what a directory decides and not what history
+decides.** Record 0004 puts two further refusals on the catalogue gate, issue
+#77, and says why they cannot be here: a landed `(id, version)` whose content
+changed, and a version that decreased, are both comparisons against a previous
+state. A record whose asserted content moved under a version it already
+published passes this leg. That bound is also what a consumer gets: this is the
+same code that validates a downloaded directory of records, and a downloaded
+directory carries no history.
+
+The walk descends into subdirectories. A flat directory cannot spend one id
+twice, because the filesystem refuses two files with one name and the loader
+refuses an id that is not its filename stem, so a leg that stopped at the top
+would carry a refusal nothing could reach. It descends because the id is the
+primary key of the whole catalogue rather than of one directory, and because a
+catalogue somebody assembled is not obliged to be flat.
+
+**Withdrawal is not judged, and no route here produces it.** Record 0004's index
+carries three states and this leg produces two, current and superseded. The
+third is a row for an id whose file may no longer be in the tree, which no walk
+of the tree can derive, and whether a withdrawn entry keeps its file at all is
+entry 10 of issue #2 and is open.
+
+The count is printed including where it is zero. The catalogue holds no entry
+until issue #73 lands, and a leg reporting that every record is sound over no
+records would be a claim about a set nobody looked at.
 
 ## The build, in a language with no compiler
 

@@ -108,6 +108,10 @@ ONE_PER_REASON: dict[str, tuple[bytes, str]] = {
         STEM,
     ),
     refusal.ID_IS_NOT_THE_FILENAME: (changed(), "schwarzschild-exterior"),
+    refusal.ID_OUTSIDE_THE_GRAMMAR: (
+        changed(('id = "schwarzschild"', 'id = "schwarzschild_2"')),
+        "schwarzschild_2",
+    ),
     refusal.DIMENSION_IS_NOT_FOUR: (changed(("dimension = 4", "dimension = 5")), STEM),
     refusal.NO_GENERIC_STRATUM: (changed(("generic = true", "generic = false")), STEM),
     refusal.TWO_GENERIC_STRATA: (
@@ -253,16 +257,23 @@ class EveryReasonIsReachable(unittest.TestCase):
     def test_every_declared_loader_reason_has_a_fixture(self) -> None:
         self.assertEqual(set(ONE_PER_REASON), set(refusal.LOADER_REASONS))
 
-    def test_a_reason_belongs_to_the_parser_or_to_the_loader_and_not_to_both(
+    def test_a_reason_belongs_to_exactly_one_of_the_three_groups(
         self,
     ) -> None:
-        self.assertEqual(
-            set(refusal.PARSER_REASONS) & set(refusal.LOADER_REASONS), set()
+        """Three groups, because three things read a record and read different amounts.
+
+        The parser reads one string, the loader reads one document, and the
+        index of record 0004 reads the set of records. A reason in two groups
+        would be a reason two corpora each believe the other covers.
+        """
+        groups = (
+            set(refusal.PARSER_REASONS),
+            set(refusal.LOADER_REASONS),
+            set(refusal.CATALOGUE_REASONS),
         )
-        self.assertEqual(
-            set(refusal.REASONS),
-            set(refusal.PARSER_REASONS) | set(refusal.LOADER_REASONS),
-        )
+        for first, second in ((0, 1), (0, 2), (1, 2)):
+            self.assertEqual(groups[first] & groups[second], set())
+        self.assertEqual(set(refusal.REASONS), set().union(*groups))
 
 
 class LoadingExecutesNothing(unittest.TestCase):

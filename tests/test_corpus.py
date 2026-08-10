@@ -20,6 +20,7 @@ import re
 import unittest
 from pathlib import Path
 
+import catalogue_corpus
 import corpus
 
 from raumbuch import record, refusal
@@ -45,16 +46,40 @@ def reasons_of(data: bytes, stem: str) -> set[str]:
 
 
 class EveryReasonHasAFixture(unittest.TestCase):
+    """Two corpora, because a reason is decided by what it reads.
+
+    This file's fixtures are one document each, which is what the parser and
+    the loader read. The reasons that need the set of records are in
+    `catalogue_corpus.py`, whose fixture is a catalogue rather than a record.
+    The split is the vocabulary's own, and the union below is what stops a
+    reason falling between the two files and being covered by neither.
+    """
+
     def test_no_reason_is_without_one(self) -> None:
-        self.assertEqual(set(corpus.FIXTURES), set(refusal.REASONS))
+        self.assertEqual(
+            set(corpus.FIXTURES) | set(catalogue_corpus.FIXTURES),
+            set(refusal.REASONS),
+        )
 
     def test_the_corpus_holds_no_fixture_for_a_reason_that_is_not_declared(
         self,
     ) -> None:
         self.assertEqual(set(corpus.FIXTURES) - set(refusal.REASONS), set())
 
+    def test_neither_corpus_covers_a_reason_the_other_covers(self) -> None:
+        self.assertEqual(set(corpus.FIXTURES) & set(catalogue_corpus.FIXTURES), set())
+
+    def test_this_corpus_is_the_reasons_one_document_decides(self) -> None:
+        self.assertEqual(
+            set(corpus.FIXTURES),
+            set(refusal.PARSER_REASONS) | set(refusal.LOADER_REASONS),
+        )
+
     def test_the_count_is_the_count_of_the_vocabulary(self) -> None:
-        self.assertEqual(len(corpus.FIXTURES), len(refusal.REASONS))
+        self.assertEqual(
+            len(corpus.FIXTURES) + len(catalogue_corpus.FIXTURES),
+            len(refusal.REASONS),
+        )
 
 
 class EachFixtureTriggersExactlyItsOwnReason(unittest.TestCase):
