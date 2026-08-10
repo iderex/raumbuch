@@ -1,0 +1,66 @@
+name: codeql
+
+# Code scanning for the language record 0001 chose. The target gate this board
+# is brought to parity with carries CodeQL for its own language, and issue #93
+# asks whether an equivalent exists here and whether it earns a place. It does
+# exist: CodeQL analyses Python, and what it looks for is a different class from
+# anything else on this board. The linter judges style and undefined names, the
+# `invariants` leg judges patterns three records refuse, and neither follows a
+# value from where it enters the program to where it is used.
+#
+# It is not a leg of the gate, and the reason is the same as the reproducible
+# build's: the database build takes minutes, and a check that doubled the time of
+# every push to judge a property that moves when the source does would be paid on
+# every commit.
+#
+# Nothing here is a precondition of a merge. Which names become one is entry 7 of
+# issue #2 and it is open.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+  schedule:
+    # Weekly, so a rule added upstream reaches this tree without a push. The day
+    # and hour are arbitrary and chosen away from the hour boundary, which is
+    # where every scheduled run on the platform queues.
+    - cron: "37 4 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (python)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    permissions:
+      # Reading the source and writing the findings to the security tab. Both
+      # are named here rather than at the top of the file so that every other
+      # job in this repository keeps the read-only default.
+      contents: read
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # No step pushes via git, so do not persist the GITHUB_TOKEN in .git/config.
+          persist-credentials: false
+      - name: Initialise the database
+        uses: github/codeql-action/init@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
+        with:
+          languages: python
+          # The interpreter version is in .python-version and nothing here reads
+          # it, because the analysis parses the source rather than running it.
+          # That is a bound on what this job judges, not a version chosen twice.
+          build-mode: none
+      - name: Analyse
+        uses: github/codeql-action/analyze@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
+        with:
+          category: "/language:python"

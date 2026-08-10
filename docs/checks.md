@@ -6,9 +6,9 @@ Most of them are legs of the gate verb. One command runs those:
 
     python3 -m raumbuch gate
 
-Six are not. Five of those are named below as the five that are not gate legs;
-the sixth is the `release` verb, which is a verb of this same program and is not
-a leg of the gate for the reason its own section gives. The section on the names
+Seven are not. Six of those are named below as the ones that are not gate legs;
+the seventh is the `release` verb, which is a verb of this same program and is
+not a leg of the gate for the reason its own section gives. The section on the names
 a reader sees says which of them a reader meets on a change, and the fuzz job is
 the one that appears on neither a push nor a pull request.
 
@@ -24,6 +24,7 @@ two half-lists. A row is added when its check exists, never in advance of one.
 | `records` | a decision record departing from the shape record 0000 fixes, and an index that misses one or points at one that is not there | the `Decision records are well formed` job of the `records` workflow, and the pre-push hook |
 | `index` | a catalogue spending one id on two records, a supersession pointing at nothing or written from one end, and a correction list that does not run to its record's version | the `gate` workflow, and the pre-push hook |
 | `schema` | a record that is not the shape `schema/record-<version>.schema.json` fixes, and a record naming a version this tree carries no schema for | the `Record schema validation` job of the `schema` workflow, and the pre-push hook |
+| `invariants` | a pattern three decision records refuse: the symbolic layer named outside `src/raumbuch/algebra/`, a floating point number in code under `src/`, and a module that reaches the network imported outside the two files that prove there is no route | the `Enforce greppable invariants` job of the `invariants` workflow, and the pre-push hook |
 | `pin` | an interpreter or a distribution whose version is not held in one file, a lockfile that disagrees with the manifest, and a version literal in a workflow | the `toolchain pin` job of the `pin` workflow, and the pre-push hook |
 | `format` | a tree the formatter would change | the `format` job of the `style` workflow, and the pre-push hook |
 | `lint` | a finding against the rule set in `pyproject.toml` | the `lint` job of the `style` workflow, and the pre-push hook |
@@ -249,6 +250,62 @@ standard library. The fixtures that need a validator are skipped rather than
 failed, the run prints the count it skipped, and the one test that covers the
 absent-tool branch runs in both places. So a green run of either of those two
 jobs is not evidence that this leg refuses anything.
+
+## The patterns three records refuse
+
+The cheapest check here and the one that does work nothing else does. Three
+decision records each say a thing that must not appear in the source, and until
+this leg each of them was a sentence in a document.
+
+Record 0001 puts everything record 0009 makes load-bearing behind one interface
+in `src/raumbuch/algebra/`, and says that nothing outside that directory names
+the symbolic layer. The boundary is what makes the means decision revisitable,
+and one import somewhere convenient is how a boundary stops being one.
+
+Record 0009: floating point does not appear in the classification path at all,
+not as a filter, not as a pre-test, not as a heuristic ordering. The leg reads
+the token stream rather than the text, because a decimal point inside a message
+is prose about arithmetic and not arithmetic: the parser's own refusal names
+`0.5` in the sentence that refuses it, and a pattern that could not tell those
+apart would refuse the code enforcing the same record.
+
+Record 0014: the library, the command-line entry point and the test suite make
+no network connection. Two files reach for a socket on purpose and both exist to
+prove there is no route out, so they are the subject the pattern excludes rather
+than an oversight it tolerates.
+
+Every pattern names the record it comes from, and the refusal prints it, so a
+reader who meets one is sent to the argument rather than to the check. A pattern
+nobody can trace to a decision is a rule somebody added.
+
+**One file is outside what this leg reads, and it is the file that declares the
+patterns.** The boundary pattern refuses a name in the source and the name has
+to be written down for the pattern to exist, so the module matches its own. It
+and its fixture file are excluded by construction, which is an exclusion a
+reader can see rather than a list somebody could lengthen quietly. Nothing in
+either file does arithmetic, reaches the network or touches the algebra layer.
+
+**A fourth pattern is named in issue #93 and is not here.** Record 0003 requires
+that a derived field is never written without its command, its commit and its
+date. Nothing in this tree writes a record, so there is no site for a pattern to
+be about, and whether a writer is ever built is issue #130. A pattern with no
+possible subject passes on every tree and reads as coverage.
+
+## Code scanning, and why it is not a leg
+
+`Analyze (python)` is CodeQL over this tree, in `.github/workflows/codeql.yml`.
+What it looks for is a class nothing else here judges: the linter judges style
+and undefined names, the `invariants` leg judges three patterns, and neither
+follows a value from where it enters the program to where it is used.
+
+It is not a leg of the gate, and the reason is the reproducible build's reason.
+Building the database takes minutes, and a leg that doubled the time of every
+push would be paid on every commit.
+
+It runs on a push, on a pull request and weekly, so a rule added upstream reaches
+this tree without somebody pushing. Its findings go to the security tab, which is
+the second thing on this board that reports from there rather than from the
+workflow, and the other is the workflow auditor.
 
 ## The build, in a language with no compiler
 
@@ -543,7 +600,7 @@ here by hand: a list of names nobody ran is the thing this section was written
 to avoid. Re-run the command above against a commit carrying the `release`
 workflow to get the current set.
 
-## The five that are not gate legs
+## The six that are not gate legs
 
 `DCO sign-off` reads every non-merge commit of a pull request and refuses one
 whose message carries no `Signed-off-by` matching its author. It fails closed:
@@ -562,6 +619,9 @@ comes from `requirements.lock` like everything else.
 checks and publishes the score. It is a self-audit and a checklist rather than a
 guarantee, and it builds and tests nothing.
 
+`Analyze (python)` is CodeQL over this tree, on a push, on a pull request and
+weekly. Its own section above says what it looks for and why it is not a leg.
+
 `Fuzz the loader and the parser` runs the campaign the section above describes,
 weekly and on request. It is a leg of nothing, on purpose: a campaign worth
 running takes minutes and its value is a different seed each time, so in front of
@@ -569,9 +629,10 @@ every push it would cost every push and still only ever run one seed. The unit
 suite runs a small campaign at seed zero instead, which keeps the harness itself
 from rotting.
 
-Those last two are the checks a contributor cannot see on their own change. One
-publishes from the default branch only and the other is not triggered by a change
-at all.
+`Scorecard analysis` and `Fuzz the loader and the parser` are the checks a
+contributor cannot see on their own change. One publishes from the default
+branch only and the other is not triggered by a change at all. `Analyze
+(python)` is not one of them: it triggers on a pull request and appears there.
 
 Two comments in those workflow files describe a project that is not this one.
 The scorecard workflow's header refers twice to a release pipeline for a plugin,
