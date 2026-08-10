@@ -31,6 +31,7 @@ from raumbuch.gate import (
     linting,
     network,
     records,
+    schema,
     suite,
     toolchain,
 )
@@ -86,6 +87,7 @@ LEGS: tuple[Leg, ...] = (
     Leg("hook", hook.run),
     Leg("records", records.run),
     Leg("index", index.run),
+    Leg("schema", schema.run),
     Leg("pin", toolchain.run),
     Leg("build", importing.run),
     Leg("format", formatting.run),

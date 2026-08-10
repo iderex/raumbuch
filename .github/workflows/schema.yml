@@ -1,0 +1,52 @@
+name: schema
+
+# The published schema is what a consumer downloads and validates against, so a
+# schema nothing here applies is a promise about records this repository never
+# checked. The job below carries no logic of its own: it asks the gate verb for
+# the `schema` leg, which reads each record's declared version and selects the
+# schema file for it. So what refuses on a runner is the same code that refuses
+# before a push, and no copy of the selection rule lives in YAML.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+# Read-only: the leg reads the records and the schemas and writes nothing.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  schema:
+    name: Record schema validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # No step pushes via git, so do not persist the GITHUB_TOKEN in .git/config.
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          # The version is read out of the pin file rather than written here.
+          # A number in a workflow is the second copy the pin exists to prevent,
+          # and the `pin` leg refuses one.
+          python-version-file: .python-version
+      - name: Install the pinned tools and the project
+        # The first command brings the validator with everything else the lock
+        # pins, hash by hash. The second installs the package with no resolution
+        # of its own.
+        run: |
+          python3 -m pip install --disable-pip-version-check --require-hashes -r requirements.lock
+          python3 -m pip install --disable-pip-version-check --no-deps --no-build-isolation -e .
+      - name: Apply the published schema to every record
+        # --require turns a leg that did not run into a refusal. Without it a
+        # job whose install left the validator out would be green over a set
+        # nothing had read, which is the failure this leg exists against.
+        run: python3 -m raumbuch gate --only schema --require schema
