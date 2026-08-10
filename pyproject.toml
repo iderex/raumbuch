@@ -23,11 +23,13 @@ license-files = ["LICENSE"]
 # says which syntax the source may use; .python-version says which interpreter
 # every run of the gate actually uses.
 requires-python = ">=3.11"
-# Empty on purpose. Record 0001 chose SymPy as the symbolic algebra layer, and
-# nothing behind the algebra boundary is implemented, so nothing here would be
-# imported. It is declared when there is code that needs it, and requirements.lock
-# gains its hashes in the same change.
-dependencies = []
+# The symbolic algebra layer record 0001 chose, declared in the change that
+# gave it a caller: the curvature of issue #44 is the first code behind the
+# algebra boundary, and requirements.lock gains its hashes here rather than
+# later. It is the only runtime dependency, and it is reached from exactly one
+# directory, src/raumbuch/algebra/, which the `invariants` leg refuses the name
+# of everywhere else.
+dependencies = ["sympy"]
 
 [project.optional-dependencies]
 # The tools a check needs and a run of the library does not. Ruff is one tool

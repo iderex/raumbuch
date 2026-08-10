@@ -18,8 +18,33 @@ class ThePackage(unittest.TestCase):
 
 
 class TheAlgebraBoundary(unittest.TestCase):
-    def test_the_placeholder_imports_and_declares_nothing_yet(self) -> None:
-        self.assertEqual(raumbuch.algebra.__all__, ())
+    """What record 0001 put behind one interface, and what is not there yet.
+
+    The boundary held nothing until issue #44 gave it a caller. What it holds
+    now is the operations that issue needed, and the test says which of record
+    0001's list are still absent so that the absence is read off the suite
+    rather than inferred from a docstring.
+    """
+
+    def test_the_operations_the_curvature_needed_are_declared(self) -> None:
+        for name in (
+            "differentiate",
+            "from_expression",
+            "normal_form",
+            "square_root",
+            "verdict",
+        ):
+            self.assertIn(name, raumbuch.algebra.__all__)
+            self.assertTrue(hasattr(raumbuch.algebra, name))
+
+    def test_three_operations_record_0001_names_are_not_implemented(self) -> None:
+        """Evaluation modulo a prime, the greatest common divisor, subresultants.
+
+        The last two are what the root multiplicity pattern of the Petrov type
+        is read from, which is issue #46. Nothing has needed the first.
+        """
+        for name in ("evaluate", "gcd", "subresultants"):
+            self.assertNotIn(name, raumbuch.algebra.__all__)
 
 
 class TheEntryPoint(unittest.TestCase):

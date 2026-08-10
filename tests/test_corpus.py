@@ -22,6 +22,7 @@ from pathlib import Path
 
 import catalogue_corpus
 import corpus
+import metrics
 
 from raumbuch import record, refusal
 
@@ -46,18 +47,22 @@ def reasons_of(data: bytes, stem: str) -> set[str]:
 
 
 class EveryReasonHasAFixture(unittest.TestCase):
-    """Two corpora, because a reason is decided by what it reads.
+    """Three corpora, because a reason is decided by what it reads.
 
     This file's fixtures are one document each, which is what the parser and
     the loader read. The reasons that need the set of records are in
     `catalogue_corpus.py`, whose fixture is a catalogue rather than a record.
-    The split is the vocabulary's own, and the union below is what stops a
-    reason falling between the two files and being covered by neither.
+    The reasons the curvature raises read no record at all, and their fixtures
+    are metrics, in `metrics.py`. The split is the vocabulary's own, and the
+    union below is what stops a reason falling between the three files and
+    being covered by none.
     """
 
     def test_no_reason_is_without_one(self) -> None:
         self.assertEqual(
-            set(corpus.FIXTURES) | set(catalogue_corpus.FIXTURES),
+            set(corpus.FIXTURES)
+            | set(catalogue_corpus.FIXTURES)
+            | set(metrics.REFUSED),
             set(refusal.REASONS),
         )
 
@@ -66,8 +71,14 @@ class EveryReasonHasAFixture(unittest.TestCase):
     ) -> None:
         self.assertEqual(set(corpus.FIXTURES) - set(refusal.REASONS), set())
 
-    def test_neither_corpus_covers_a_reason_the_other_covers(self) -> None:
-        self.assertEqual(set(corpus.FIXTURES) & set(catalogue_corpus.FIXTURES), set())
+    def test_no_corpus_covers_a_reason_another_covers(self) -> None:
+        sets = (
+            set(corpus.FIXTURES),
+            set(catalogue_corpus.FIXTURES),
+            set(metrics.REFUSED),
+        )
+        for first, second in ((0, 1), (0, 2), (1, 2)):
+            self.assertEqual(sets[first] & sets[second], set())
 
     def test_this_corpus_is_the_reasons_one_document_decides(self) -> None:
         self.assertEqual(
@@ -77,7 +88,9 @@ class EveryReasonHasAFixture(unittest.TestCase):
 
     def test_the_count_is_the_count_of_the_vocabulary(self) -> None:
         self.assertEqual(
-            len(corpus.FIXTURES) + len(catalogue_corpus.FIXTURES),
+            len(corpus.FIXTURES)
+            + len(catalogue_corpus.FIXTURES)
+            + len(metrics.REFUSED),
             len(refusal.REASONS),
         )
 
