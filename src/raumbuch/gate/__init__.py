@@ -22,6 +22,7 @@ from pathlib import Path
 
 from raumbuch.gate import (
     determinism,
+    documents,
     formatting,
     headless,
     hook,
@@ -87,6 +88,7 @@ LEGS: tuple[Leg, ...] = (
     Leg("layout", layout.run),
     Leg("hook", hook.run),
     Leg("records", records.run),
+    Leg("documents", documents.run),
     Leg("index", index.run),
     Leg("schema", schema.run),
     Leg("invariants", invariants.run),
