@@ -144,6 +144,12 @@ UNKNOWN_SCHEMA_VERSION = "unknown-schema-version"
 #: path are the same fact.
 ID_IS_NOT_THE_FILENAME = "id-is-not-the-filename"
 
+#: An ``id`` outside the slug grammar of record 0004. The schema refuses the
+#: same thing, and the loader refuses it too rather than trusting a check it
+#: does not run: nothing in the gate applies the schema until issue #43 lands,
+#: and a consumer loading a downloaded record applies neither.
+ID_OUTSIDE_THE_GRAMMAR = "id-outside-the-grammar"
+
 #: A ``dimension`` other than four. Record 0002 names the loader as what
 #: refuses a record nothing in this project can classify.
 DIMENSION_IS_NOT_FOUR = "dimension-is-not-four"
@@ -231,6 +237,7 @@ LOADER_REASONS: tuple[str, ...] = (
     FIELD_OF_THE_WRONG_KIND,
     UNKNOWN_SCHEMA_VERSION,
     ID_IS_NOT_THE_FILENAME,
+    ID_OUTSIDE_THE_GRAMMAR,
     DIMENSION_IS_NOT_FOUR,
     NO_GENERIC_STRATUM,
     TWO_GENERIC_STRATA,

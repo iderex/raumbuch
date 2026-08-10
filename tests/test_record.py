@@ -108,6 +108,10 @@ ONE_PER_REASON: dict[str, tuple[bytes, str]] = {
         STEM,
     ),
     refusal.ID_IS_NOT_THE_FILENAME: (changed(), "schwarzschild-exterior"),
+    refusal.ID_OUTSIDE_THE_GRAMMAR: (
+        changed(('id = "schwarzschild"', 'id = "schwarzschild_2"')),
+        "schwarzschild_2",
+    ),
     refusal.DIMENSION_IS_NOT_FOUR: (changed(("dimension = 4", "dimension = 5")), STEM),
     refusal.NO_GENERIC_STRATUM: (changed(("generic = true", "generic = false")), STEM),
     refusal.TWO_GENERIC_STRATA: (

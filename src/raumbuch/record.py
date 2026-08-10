@@ -27,6 +27,7 @@ back into the raw document for.
 from __future__ import annotations
 
 import dataclasses
+import re
 import tomllib
 from pathlib import Path
 from typing import Any
@@ -42,6 +43,12 @@ DIMENSION = 4
 #: record format is a second schema file and a second loader path, per record
 #: 0003, and never a widening of this one.
 SCHEMA_VERSION = "1"
+
+#: The slug of record 0004, which the schema carries as the same pattern. It is
+#: written twice on purpose: a record reaching a consumer through the loader
+#: alone meets no schema, and nothing in the gate applies the schema until issue
+#: #43 lands.
+ID = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
 #: Record 0005. A relation outside this is a fifth kind of chart relationship
 #: nobody has argued for.
@@ -193,6 +200,13 @@ def _identity(document: dict[str, Any], stem: str) -> None:
         refusal.refuse(
             refusal.ID_IS_NOT_THE_FILENAME,
             f"the id is {identifier!r} and the file is {stem!r}.toml",
+        )
+    if not ID.fullmatch(identifier):
+        refusal.refuse(
+            refusal.ID_OUTSIDE_THE_GRAMMAR,
+            f"the id {identifier!r} is not lowercase letters and digits in "
+            "groups separated by single hyphens, which is the slug record 0004 "
+            "fixes",
         )
     dimension = _whole(document, "dimension")
     if dimension != DIMENSION:
