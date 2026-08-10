@@ -2,10 +2,10 @@
 
 Record 0003 reserved ``raumbuch classify``, ``raumbuch curvature`` and
 ``raumbuch verify`` against the derived fields they recompute, and record 0001
-made the gate one more verb of the same program. Only the gate verb exists here;
-the reserved three are built by their own issues and are absent rather than
-stubbed, because a verb that answers nothing is worse than a verb that is not
-there.
+made the gate one more verb of the same program. The gate and the release
+artefacts exist here; the reserved three are built by their own issues and are
+absent rather than stubbed, because a verb that answers nothing is worse than a
+verb that is not there.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from raumbuch import gate
+from raumbuch import gate, release
 
 
 def parser() -> argparse.ArgumentParser:
@@ -54,6 +54,29 @@ def parser() -> argparse.ArgumentParser:
             "did not cover"
         ),
     )
+    release_verb = verbs.add_parser(
+        "release",
+        help=(
+            "build the wheel, the sdist and the bill of materials twice, and "
+            "refuse a byte that moved between the two builds"
+        ),
+    )
+    release_verb.add_argument(
+        "--root",
+        type=Path,
+        default=Path("."),
+        help="the checkout to build, which defaults to the working directory",
+    )
+    release_verb.add_argument(
+        "--into",
+        type=Path,
+        default=Path("dist"),
+        help=(
+            "where the two builds are written, one subdirectory each. Two "
+            "builds rather than one against a stored hash, which would be a "
+            "number somebody has to update on every commit"
+        ),
+    )
     return argument_parser
 
 
@@ -63,4 +86,6 @@ def main(argv: list[str] | None = None) -> int:
         return gate.main(
             arguments.root, only=arguments.only, required=arguments.require
         )
+    if arguments.verb == "release":
+        return release.main(arguments.root, arguments.into)
     raise AssertionError(f"no such verb: {arguments.verb}")
