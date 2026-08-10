@@ -6,9 +6,11 @@ Most of them are legs of the gate verb. One command runs those:
 
     python3 -m raumbuch gate
 
-Five are not. The section on the names a reader sees says which of them a reader
-meets on a change, and the fuzz job is the one that appears on neither a push nor
-a pull request.
+Six are not. Five of those are named below as the five that are not gate legs;
+the sixth is the `release` verb, which is a verb of this same program and is not
+a leg of the gate for the reason its own section gives. The section on the names
+a reader sees says which of them a reader meets on a change, and the fuzz job is
+the one that appears on neither a push nor a pull request.
 
 The table is appended to by the issue that builds a check, one row per check, and
 the surrounding text is issue #33's. That direction is chosen here so that the
@@ -29,6 +31,7 @@ two half-lists. A row is added when its check exists, never in advance of one.
 | `build` | a file in the tree that does not compile, or a module under `src/` that does not import | the `build` job of the `suite` workflow, and the pre-push hook |
 | `tests` | a unit suite that does not pass on the tree being judged | the `unit tests` job of the `suite` workflow, and the pre-push hook |
 | the fuzz harness | an input to the record loader or the expression parser that crashes, escapes the grammar, executes something, or builds a tree larger than its text | the `Fuzz the loader and the parser` job of the `fuzz` workflow, weekly and on request; a small campaign runs inside `tests` |
+| the `release` verb | a byte that moved between two builds of one commit, and a bill of materials that disagrees with the lockfile it describes | the `Reproducible build and bill of materials` job of the `release` workflow |
 
 ## The pin, and the three ways it stops being one
 
@@ -327,6 +330,64 @@ against it and refuses. It carries twelve names rather than two, because a set
 of two reorders under a new seed only sometimes and a proof that fails
 occasionally is worse than none.
 
+## The reproducible build, and why it is a verb rather than a leg
+
+Record 0006 anchors a stored derived value to a digest over the source that
+produced it, and record 0012 promises that two runs of one input agree. Neither
+is worth anything if the program those runs were made with cannot be brought
+back, so a classification record carrying a toolchain version and a commit is
+decoration wherever those two do not determine an artefact. That is what this
+check is for, and it lands long before the classification does because the cost
+of finding a build unreproducible after a catalogue has been published is the
+catalogue.
+
+    python3 -m raumbuch release --into dist
+
+It builds this commit twice, into two directories, and compares every byte of
+the wheel, the source distribution and the bill of materials. Two builds rather
+than one build compared against a stored digest: a stored digest is right until
+the next commit, and after that it is either updated by hand every time, which
+is a ritual nobody reads, or it is wrong.
+
+**It is not a leg of the gate, and the reason is the cost.** The gate runs in
+front of every push and this builds the project twice. The legs are ordered
+cheapest first for that reason, and a leg that doubled the time of every push to
+judge a property that changes when the packaging changes would be paid on every
+commit that changes none of it.
+
+What makes a build vary here was measured rather than assumed, and the answer
+had three parts. With nothing set, two builds of one commit disagree in both
+artefacts. With `SOURCE_DATE_EPOCH` in the environment the wheel agrees and the
+sdist does not, because setuptools applies the variable to the wheel and stamps
+the sdist's tar members and its gzip header with the wall clock. And the gzip
+header records the name of the file it was handed, so two archives of identical
+content written to two paths differ in their headers alone. The epoch is taken
+from the commit rather than from the clock, which ties the artefact to the thing
+a record's stamp names, and the sdist is rewritten afterwards with every time
+set to that epoch and no name in its header.
+
+**The rewrite removes a clock and cannot remove a change.** It reads the members
+out and writes them back in the order they arrived, so two tarballs of differing
+content still differ, and there is a fixture that says so. That bound is the
+difference between a normalisation and a normalisation that hides what it was
+pointed at.
+
+The bill of materials is produced by the build, out of `requirements.lock`,
+which is already the one file saying which version of every distribution arrives
+and the hash of every file it publishes. A second place holding the same list is
+a second place to be wrong. The verb refuses a document that disagrees with that
+lock on the component set, on a version or on a hash, which is what makes
+"produced by the build" mean something: a document edited afterwards, carried
+over from an older build, or written by hand cannot be shipped beside a
+distribution built from a different lock.
+
+Two things this check does not do. It publishes nothing and tags nothing: what a
+release contains and how one is made is issue #100, and no step here is a
+release procedure. And it says nothing about whether the artefact reproduces on
+a different machine or a different operating system, because both builds it
+compares are made on one runner. A second machine is a stronger claim and this
+one is not it.
+
 ## The names a reader sees, read off a run
 
 The table above is the gate's own names, which is what `--only` takes. What
@@ -368,6 +429,13 @@ tree. It is GitHub's own dependency submission, which started running when
 
 A reader counting green ticks and matching them against `.github/workflows/`
 would be one over and would not find the file.
+
+**`Reproducible build and bill of materials` is not in the list above and does
+appear on a change.** The list is a reading of a run at a commit that predates
+that job, and the fix for that is another reading rather than a name inserted
+here by hand: a list of names nobody ran is the thing this section was written
+to avoid. Re-run the command above against a commit carrying the `release`
+workflow to get the current set.
 
 ## The five that are not gate legs
 

@@ -1,0 +1,77 @@
+name: release
+
+# One check, `Reproducible build and bill of materials`. It builds this commit
+# twice and refuses a byte that moved between the two builds, and it writes the
+# bill of materials out of the lockfile and refuses one that disagrees with it.
+#
+# The job carries no logic. It asks the `release` verb, so what refuses on a
+# runner is the same code a contributor runs by hand, and there is no second
+# copy of a build invocation in YAML to drift from the one in the tree.
+#
+# Two builds rather than one build compared against a stored digest. A stored
+# digest is right until the next commit and is then either updated by hand every
+# time, which is a ritual nobody reads, or it is wrong. Two builds in one run ask
+# the property directly and have nothing to keep up to date.
+#
+# The artefact's times come from the commit date, which the default checkout
+# supplies: it fetches one commit, and one is what `git log -1` reads. Nothing
+# here needs history, and that is worth knowing before somebody deepens the
+# checkout to fix a problem this job does not have.
+#
+# This job publishes nothing and tags nothing. What a release contains and how
+# one is made is issue #100, and no step here is a release procedure.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+# Read-only. The job builds into the runner's own workspace and writes nothing
+# back to the repository.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    name: Reproducible build and bill of materials
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # No step pushes via git, so do not persist the GITHUB_TOKEN in .git/config.
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          # The version is read out of the pin file rather than written here.
+          # A number in a workflow is the second copy the pin exists to prevent,
+          # and the `pin` leg refuses one.
+          python-version-file: .python-version
+      - name: Install the pinned tools and the project
+        # The build backend is one of the distributions the lock pins, so it
+        # arrives with --require-hashes like everything else. That is also why
+        # the verb calls the backend directly instead of through a build
+        # frontend: a frontend makes its own isolated environment and fetches
+        # its own copy of the backend, which is a resolution at build time in
+        # the one place this tree has been careful to have none.
+        run: |
+          python3 -m pip install --disable-pip-version-check --require-hashes -r requirements.lock
+          python3 -m pip install --disable-pip-version-check --no-deps --no-build-isolation -e .
+      - name: Build this commit twice and compare every byte
+        run: python3 -m raumbuch release --into "${RUNNER_TEMP}/release"
+      - name: Attach the artefacts and the bill of materials to the run
+        # The bill of materials is produced by the build above rather than
+        # assembled here, and this step only carries what that build wrote. A
+        # document assembled by a workflow step is a second place the dependency
+        # list lives, which is the thing the verb refuses.
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-artefacts
+          path: ${{ runner.temp }}/release/first
+          if-no-files-found: error
