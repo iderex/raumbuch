@@ -22,6 +22,7 @@ two half-lists. A row is added when its check exists, never in advance of one.
 | `layout` | a tree missing a directory the layout block of record 0001 names | the `gate` workflow, and the pre-push hook |
 | `hook` | a `.githooks/pre-push` carrying any instruction besides the gate invocation | the `gate` workflow, and the pre-push hook |
 | `records` | a decision record departing from the shape record 0000 fixes, and an index that misses one or points at one that is not there | the `Decision records are well formed` job of the `records` workflow, and the pre-push hook |
+| `documents` | a paragraph a decision record fixes and the documentation quotes, carried in words that are not the record's, and a link pointing at a path this tree does not hold | the `gate` workflow, and the pre-push hook |
 | `index` | a catalogue spending one id on two records, a supersession pointing at nothing or written from one end, and a correction list that does not run to its record's version | the `gate` workflow, and the pre-push hook |
 | `schema` | a record that is not the shape `schema/record-<version>.schema.json` fixes, and a record naming a version this tree carries no schema for | the `Record schema validation` job of the `schema` workflow, and the pre-push hook |
 | `invariants` | a pattern three decision records refuse: the symbolic layer named outside `src/raumbuch/algebra/`, a floating point number in code under `src/`, and a module that reaches the network imported outside the two files that prove there is no route | the `Enforce greppable invariants` job of the `invariants` workflow, and the pre-push hook |
@@ -172,6 +173,34 @@ index directions and its two correction rules, and those are what it holds.
 Whether a `## Question` is more than a restatement of the title, and whether a
 rejected alternative carries a reason, are judgements about meaning that no
 reading of the tree makes.
+
+## The paragraphs a record fixes, and the links a document makes
+
+Records 0007 and 0014 each write a paragraph inside a fence and say in their own
+text that the documentation quotes it and never paraphrases it. One limitation
+restated in three voices is three chances for one of them to come out more
+reassuring than the record argued for, and the one that comes out reassuring is
+the one a reader will believe. The `documents` leg compares each fenced
+paragraph against the pages that carry it, byte for byte.
+
+Which paragraphs those are is a table in `src/raumbuch/gate/documents.py`,
+anchored to the sentence each record writes in front of its block. A record that
+renames that sentence reddens the leg saying the anchor was not found, rather
+than passing with nothing compared.
+
+The same leg refuses a link pointing at a path this tree does not hold. A
+document that points at a file nobody wrote is a promise the tree does not keep,
+and the reader who finds out is the one who needed the page.
+
+What it does not judge. The report `is_this_new` returns is the third carrier
+record 0007 names, and its copy is a constant in code rather than a document.
+Nothing compares that one, and issue #105 holds it. An anchor is not resolved:
+`docs/checks.md#the-pin` is judged as `docs/checks.md`, and a link that is only
+an anchor is not judged at all. An address is not fetched, because reaching one
+would put a network call inside the gate, which record 0014 refuses. A link
+inside a fenced block is text being shown rather than a pointer being followed,
+which is what lets this document quote a command and record 0003 carry a worked
+example.
 
 ## The identifier, and the three things a directory can decide about it
 
