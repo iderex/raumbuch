@@ -20,7 +20,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
-from raumbuch import algebra, curvature, petrov, record, refusal
+from raumbuch import algebra, curvature, frame, petrov, record, refusal
 
 ROOT = Path(__file__).resolve().parents[1]
 RECORD_FORMAT = ROOT / "docs" / "record-format.md"
@@ -238,6 +238,23 @@ def _broken_tetrad() -> None:
     curvature.tetrad(subject, (frame.leg("l"), frame.leg("n"), scaled))
 
 
+def _doubled_dyad() -> None:
+    """A frame transformation that scales one dyad leg and not the other.
+
+    Its determinant is two rather than one, so it is not in the group record
+    0002 counts six parameters of, and it would take a tetrad to something that
+    is not one. The distance from an element that is in the group is one entry,
+    which is what makes it the mistake somebody writes rather than a shape
+    nobody would.
+    """
+    frame.element(
+        algebra.integer(2),
+        algebra.integer(0),
+        algebra.integer(0),
+        algebra.integer(1),
+    )
+
+
 #: One fixture per reason the arithmetic raises, which is the third corpus
 #: beside the two that hold records. Every reason in the vocabulary of
 #: :mod:`raumbuch.refusal` has a fixture in exactly one of the three, and
@@ -253,6 +270,7 @@ REFUSED: dict[str, Callable[[], None]] = {
     ),
     refusal.TETRAD_CONDITION_FAILS: _broken_tetrad,
     refusal.ZERO_TEST_UNDECIDED: lambda: petrov.classify(_free_amplitude()),
+    refusal.FRAME_ELEMENT_IS_NOT_UNIMODULAR: _doubled_dyad,
 }
 
 
