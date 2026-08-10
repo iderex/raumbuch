@@ -344,7 +344,16 @@ TETRAD_CONDITION_FAILS = "tetrad-condition-fails"
 #: one that was decided.
 ZERO_TEST_UNDECIDED = "zero-test-undecided"
 
-CLASSIFICATION_REASONS: tuple[str, ...] = (ZERO_TEST_UNDECIDED,)
+#: A frame transformation whose determinant is not one, or a boost and spin
+#: parameter that is not decidably non-zero. Record 0002 counts the frame
+#: freedom as six real parameters, and an element outside the group is a
+#: seventh direction nothing accounts for.
+FRAME_ELEMENT_IS_NOT_UNIMODULAR = "frame-element-is-not-unimodular"
+
+CLASSIFICATION_REASONS: tuple[str, ...] = (
+    ZERO_TEST_UNDECIDED,
+    FRAME_ELEMENT_IS_NOT_UNIMODULAR,
+)
 
 CURVATURE_REASONS: tuple[str, ...] = (
     METRIC_IS_DEGENERATE,
