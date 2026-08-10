@@ -254,11 +254,55 @@ LOADER_REASONS: tuple[str, ...] = (
     DERIVED_VALUE_WITH_NO_VERIFICATION,
 )
 
+# The catalogue index of issue #41. Each reason names a failure that needs the
+# set of records rather than one of them. The schema reads one document, the
+# loader reads one document and the shape around it, and these read every
+# record at once: which of them exist, and which ids they spend. Record 0004
+# writes the list they come from.
+
+#: One ``id`` on two records. Record 0004 makes the id the primary key of the
+#: catalogue and the thing a citation names, so two records answering to it is
+#: two answers to a citation.
+ID_CARRIED_BY_TWO_RECORDS = "id-carried-by-two-records"
+
+#: A ``supersedes`` or ``superseded_by`` naming an id the catalogue does not
+#: hold. A reader following it arrives nowhere, which is worse than a record
+#: that never claimed a successor.
+SUPERSESSION_NAMES_NO_RECORD = "supersession-names-no-record"
+
+#: A supersession written from one end only. Record 0004 requires both ends
+#: because a reader arriving at the old id has to be sent forward and a reader
+#: arriving at the new one has to know what it displaced, and a link with one
+#: end serves whichever of the two arrived from the wrong side.
+HALF_WRITTEN_SUPERSESSION = "half-written-supersession"
+
+#: A ``correction`` list that is not exactly the versions from 2 up to the
+#: record's own. Record 0004 makes the list the history a consumer reads
+#: instead of the old copy, so a gap in it is a correction nobody is told about
+#: and a repeat is one told twice.
+CORRECTION_LIST_DOES_NOT_RUN_TO_THE_VERSION = (
+    "correction-list-does-not-run-to-the-version"
+)
+
+#: A pin naming an id the catalogue does not hold. Record 0004: this is a
+#: refusal rather than an empty result, because an id this release never had
+#: and an id it took away are opposite statements and a caller receiving
+#: nothing back cannot tell them apart.
+UNKNOWN_IDENTIFIER = "unknown-identifier"
+
+CATALOGUE_REASONS: tuple[str, ...] = (
+    ID_CARRIED_BY_TWO_RECORDS,
+    SUPERSESSION_NAMES_NO_RECORD,
+    HALF_WRITTEN_SUPERSESSION,
+    CORRECTION_LIST_DOES_NOT_RUN_TO_THE_VERSION,
+    UNKNOWN_IDENTIFIER,
+)
+
 #: Every reason anything here may be refused for, and nothing outside it is a
-#: reason :func:`refuse` will accept. Issue #41 adds the refusals of record
-#: 0004 that need the catalogue rather than one record; the tuple is written to
-#: be added to.
-REASONS: tuple[str, ...] = PARSER_REASONS + LOADER_REASONS
+#: reason :func:`refuse` will accept. The three groups are the three things
+#: that read a record: the parser reads one string, the loader reads one
+#: document, the index reads the set. The tuple is written to be added to.
+REASONS: tuple[str, ...] = PARSER_REASONS + LOADER_REASONS + CATALOGUE_REASONS
 
 
 class Refused(Exception):
