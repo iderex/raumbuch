@@ -1,0 +1,47 @@
+name: invariants
+
+# Three decision records each say a thing that must not appear in the source.
+# Until this job each of them was a sentence in a document, and a sentence in a
+# document is an explanation of a rule rather than a rule. The job carries no
+# pattern of its own: it asks the gate verb for the `invariants` leg, where each
+# pattern sits beside the record it comes from, so there is no second copy of a
+# pattern in YAML for the two to disagree over.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+# Read-only: the leg reads the source and writes nothing.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  invariants:
+    name: Enforce greppable invariants
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # No step pushes via git, so do not persist the GITHUB_TOKEN in .git/config.
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          # The version is read out of the pin file rather than written here.
+          python-version-file: .python-version
+      - name: Refuse every pattern the records refuse
+        # The leg needs nothing installed: it reads text and a token stream, both
+        # from the standard library, so there is no install step and nothing to
+        # fetch. --require turns a leg that did not run into a refusal, so a
+        # checkout arriving without src/ or tests/ reddens rather than passing
+        # over a tree nothing read.
+        env:
+          PYTHONPATH: src
+        run: python3 -m raumbuch gate --only invariants --require invariants
