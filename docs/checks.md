@@ -58,9 +58,20 @@ The `pin` leg refuses three things. A version literal in a workflow, because the
 pin means nothing where a second copy exists and a workflow is where the second
 copy goes. A lockfile that disagrees with `pyproject.toml`, in either direction:
 a name in the manifest and not the lock is a dependency arriving unpinned, and a
-name in the lock and not the manifest is a pin for something nothing installs. A
-locked entry with no hash or pinned by anything other than `==`, because a
-version without a hash is still a name resolved at install time.
+name in the lock that nothing installs is a pin for nothing. A locked entry with
+no hash or pinned by anything other than `==`, because a version without a hash
+is still a name resolved at install time.
+
+**Which file answers for a distribution depends on who wanted it.**
+`pyproject.toml` answers for the ones this project chose. `requirements.lock`
+answers for the ones those choices drag in, through the `# via` comment
+`uv pip compile --generate-hashes` writes under every entry, naming what
+required it. So a locked distribution the manifest does not name is admitted by
+a `# via` chain that roots in one the manifest does name, and refused when no
+such chain exists. The refusal says which of the two would admit it: declaring
+the name in the manifest, or a `# via` naming the locked distribution that
+requires it. A `# via` written as prose names no distribution and roots
+nothing.
 
 **The one version literal a workflow may carry is the `# vX.Y.Z` comment after
 an action's forty character commit hash.** The hash is the pin and the comment
@@ -69,15 +80,20 @@ supply-chain half of the same decision. The pattern is three parts for a
 neighbouring reason: a two-part number reaches a standard's identifier in a
 comment, which is not a version of anything this file pins.
 
-**The manifest carries four names it does not directly need, and issue #135
-holds the repair.** The comparison above is between two sets of names, which
-assumes every locked distribution is one somebody declared. That held while
-every dependency here was a single binary with nothing under it. `jsonschema`,
-which the `schema` leg applies, requires four further distributions, and what
-landed is those four written into the `schema` extra of `pyproject.toml` so the
-sets agree. It fails closed in both directions, so the drift is visible rather
-than silent, and it asks the manifest to carry a resolver's output. The repair
-reads uv's own `# via` lines in the lock instead.
+`jsonschema`, which the `schema` leg applies, is the first dependency here with
+dependencies of its own, and the four it requires are what the rule above was
+written for. They were named in the `schema` extra of `pyproject.toml` for a
+while, which made the two sets agree by asking the manifest to carry a
+resolver's output: the file then said this project depends on `rpds-py`, which
+it does not.
+
+What the leg still cannot judge is whether a `# via` comment is true. It is
+written by the resolver and it is text in a file somebody may edit, so an entry
+given a `# via` naming a declared distribution that does not require it is
+admitted. Reading the requirement metadata of the distribution itself would
+settle it and would mean installing the distribution to ask, which is a network
+route this gate does not have. The check reads what the lock says rather than
+what the index says, and this paragraph is the bound on that.
 
 The workflow auditor's version sits in the lockfile with everything else, and
 the workflow that runs it reads it out of that file. Whether a tool used only by

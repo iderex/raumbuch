@@ -48,21 +48,14 @@ audit = ["zizmor"]
 # in the lock itself. A lock produced by something unpinned is a lock whose
 # contents were chosen by whatever version of the resolver ran that week.
 lock = ["uv"]
-# The JSON Schema validator the `schema` leg applies, and the four
-# distributions jsonschema requires. The four are written here rather than left
-# to the lock alone, and the reason is a property of the `pin` leg: it compares
-# this file and the lock as sets of names, so a name in the lock and not here is
-# refused as a pin for something nothing installs. Every dependency this tree
-# had until now was a single binary with nothing under it, so this is the first
-# change that meets the property. Issue #135 holds the repair that reads uv's
-# own `# via` lines instead of asking this list to carry them.
-schema = [
-    "jsonschema",
-    "attrs",
-    "jsonschema-specifications",
-    "referencing",
-    "rpds-py",
-]
+# The JSON Schema validator the `schema` leg applies. It is the first
+# dependency here with dependencies of its own, and the four it requires are
+# not named beside it: this file says what the project chose, and
+# requirements.lock says what that choice drags in, one `# via` comment per
+# entry. The `pin` leg reads those comments, so a locked distribution is
+# admissible either by being declared here or by a `# via` chain rooting in
+# something that is.
+schema = ["jsonschema"]
 
 [project.scripts]
 raumbuch = "raumbuch.cli:main"

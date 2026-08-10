@@ -22,8 +22,16 @@ the pinning convention's own readability and is not a version of anything this
 file pins.
 
 A lockfile that disagrees with the manifest. A name ``pyproject.toml`` declares
-and the lock does not is a dependency that arrives unpinned; a name the lock
-carries and the manifest does not is a pin for something nothing installs.
+and the lock does not is a dependency that arrives unpinned. In the other
+direction the manifest is not the only answer: a locked distribution nothing
+declares is admissible when the lock itself says which declared distribution
+requires it, which is the ``# via`` comment ``uv pip compile`` writes under every
+entry. So a name that is neither declared nor reachable through ``# via`` from a
+declared name is a pin for something nothing installs, and the refusal says which
+of the two would admit it. This is narrower than comparing the two files as sets
+of names, not wider: before, a transitive distribution was indistinguishable from
+one nothing requires, and the manifest carried a resolver's output so that the
+sets would agree.
 
 A locked distribution with no hash, or a lock pinned by anything other than
 ``==``. A version without a hash is a name resolved at install time, which is
@@ -63,6 +71,12 @@ PIN_COMMENT = re.compile(r"@[0-9a-f]{40}\s*#\s*v?\d+\.\d+(\.\d+)?\s*$")
 # resolution deferred to install time.
 LOCKED = re.compile(r"^([A-Za-z0-9][A-Za-z0-9._-]*)==(\S+)")
 HASH = re.compile(r"--hash=sha256:[0-9a-f]{64}")
+
+# What `uv pip compile --generate-hashes` writes under an entry to say what
+# required it. One parent sits on the `# via` line; several sit on the indented
+# lines under a bare `# via`.
+VIA = re.compile(r"^#\s*via\b\s*(.*)$")
+VIA_ITEM = re.compile(r"^#\s+(\S.*)$")
 
 # A requirement in the manifest is a name and possibly a marker or an extra.
 # Only the name is compared, because which version arrives is the lock's answer.
@@ -116,6 +130,83 @@ def locked(lock: str) -> dict[str, tuple[str, int]]:
             version, count = found[current]
             found[current] = (version, count + len(HASH.findall(line)))
     return found
+
+
+def required_by(lock: str) -> dict[str, set[str]]:
+    """For every locked distribution, the names its ``# via`` comment gives.
+
+    A name that is not itself a locked distribution is kept rather than dropped.
+    A ``# via`` written as prose then roots nothing, which is the direction that
+    fails closed: the entry is refused along with everything the prose was meant
+    to explain.
+    """
+    parents: dict[str, set[str]] = {}
+    current: str | None = None
+    listing = False
+    for line in lock.splitlines():
+        stripped = line.strip()
+        opened = LOCKED.match(stripped)
+        if opened:
+            current = normalised(opened.group(1))
+            parents[current] = set()
+            listing = False
+            continue
+        if current is None or not stripped.startswith("#"):
+            listing = False
+            continue
+        via = VIA.match(stripped)
+        if via:
+            named = via.group(1).strip()
+            if named:
+                parents[current].add(normalised(named))
+            listing = not named
+            continue
+        item = VIA_ITEM.match(stripped) if listing else None
+        if item:
+            parents[current].add(normalised(item.group(1).strip()))
+        else:
+            listing = False
+    return parents
+
+
+def reachable(
+    pinned: set[str], parents: dict[str, set[str]], wanted: set[str]
+) -> set[str]:
+    """The locked distributions a ``# via`` chain roots in the manifest.
+
+    A declared name roots itself; every other name is admitted by a parent that
+    is already admitted. So a ring of names citing each other and nothing else
+    admits none of them, which is the shape a hand-written ``# via`` could take.
+    """
+    reached = pinned & wanted
+    while True:
+        found = {
+            name for name in pinned - reached if parents.get(name, set()) & reached
+        }
+        if not found:
+            return reached
+        reached |= found
+
+
+def orphaned(
+    pinned: set[str], parents: dict[str, set[str]], wanted: set[str]
+) -> list[str]:
+    """Every locked distribution nothing installs, with what would admit it."""
+    faults = []
+    for name in sorted(pinned - reachable(pinned, parents, wanted)):
+        said = sorted(parents.get(name, set()))
+        trail = (
+            "carries no `# via` saying what requires it"
+            if not said
+            else "carries `# via " + ", ".join(said) + "`, which nothing declared roots"
+        )
+        faults.append(
+            f"{name} is pinned in {LOCK.as_posix()} and declared nowhere in "
+            f"{MANIFEST.as_posix()}, and it {trail}, so it is a pin for something "
+            f"nothing installs: declare it in {MANIFEST.as_posix()}, or give it a "
+            "`# via` naming the locked distribution that requires it"
+        )
+    return faults
 
 
 def unpinned(lock: str) -> list[str]:
@@ -190,11 +281,7 @@ def judge(root: Path) -> list[str]:
             f"{name} is declared in {MANIFEST.as_posix()} and not pinned in "
             f"{LOCK.as_posix()}, so it arrives unpinned"
         )
-    for name in sorted(set(pinned) - wanted):
-        faults.append(
-            f"{name} is pinned in {LOCK.as_posix()} and declared nowhere in "
-            f"{MANIFEST.as_posix()}, so it is a pin for something nothing installs"
-        )
+    faults += orphaned(set(pinned), required_by(lock), wanted)
 
     return faults + [
         f"{WORKFLOWS.as_posix()}/{found}, and a version literal in a workflow is "
@@ -215,12 +302,16 @@ def run(root: Path) -> gate.Verdict:
         return gate.refused(
             f"{len(faults)} way(s) the pin is not a pin\n" + "\n".join(faults)
         )
-    pinned = locked((root / LOCK).read_text(encoding="utf-8"))
+    lock = (root / LOCK).read_text(encoding="utf-8")
+    pinned = locked(lock)
+    wanted = declared((root / MANIFEST).read_text(encoding="utf-8"))
     said = (root / INTERPRETER).read_text(encoding="utf-8").strip()
     total = sum(count for _, count in pinned.values())
+    transitive = len(set(pinned) - wanted)
     return gate.passed(
         f"CPython {said} in {INTERPRETER.as_posix()}, {len(pinned)} "
-        f"distribution(s) pinned to {total} file hash(es) in {LOCK.as_posix()} "
-        f"and matching {MANIFEST.as_posix()}, and no version literal in "
-        f"{WORKFLOWS.as_posix()}/"
+        f"distribution(s) pinned to {total} file hash(es) in {LOCK.as_posix()}, "
+        f"{len(pinned) - transitive} of them declared in {MANIFEST.as_posix()} "
+        f"and {transitive} reached from a declared one through `# via`, and no "
+        f"version literal in {WORKFLOWS.as_posix()}/"
     )
