@@ -305,11 +305,50 @@ CATALOGUE_REASONS: tuple[str, ...] = (
     UNKNOWN_IDENTIFIER,
 )
 
+# The curvature of issue #44. These are the first reasons here that are not
+# about what a file says: the record is well formed and the arithmetic is what
+# refuses. Each names a thing the module will not guess at, because a guess
+# here produces a classification that is wrong for every entry it touches and
+# looks entirely plausible.
+
+#: A metric whose determinant vanishes, so there is no inverse and no
+#: connection. Read as a chart written outside the region it covers, which
+#: record 0005 attaches to a chart and which nothing checks at this layer.
+METRIC_IS_DEGENERATE = "metric-is-degenerate"
+
+#: A metric that the tetrad construction cannot split into the two-block on the
+#: chart's first two coordinates and the transverse block on its last two. The
+#: legs are then not this construction's to build, and the tetrad is passed in
+#: and checked instead of constructed.
+FRAME_IS_NOT_BLOCK_PAIRED = "frame-is-not-block-paired"
+
+#: A frame construction that would need a square root the field of record 0009
+#: does not hold, or a zero test it did not decide. Record 0009 enters no
+#: algebraic extension for the steps this board takes, so the construction stops
+#: rather than reaching for one nobody declared.
+FRAME_CONSTRUCTION_LEAVES_THE_FIELD = "frame-construction-leaves-the-field"
+
+#: Legs that do not satisfy the normalisation record 0002 fixes, or that do not
+#: rebuild the metric they were built from. Record 0002 says the conditions are
+#: checked rather than assumed, and this is what checking them says when they
+#: do not hold.
+TETRAD_CONDITION_FAILS = "tetrad-condition-fails"
+
+CURVATURE_REASONS: tuple[str, ...] = (
+    METRIC_IS_DEGENERATE,
+    FRAME_IS_NOT_BLOCK_PAIRED,
+    FRAME_CONSTRUCTION_LEAVES_THE_FIELD,
+    TETRAD_CONDITION_FAILS,
+)
+
 #: Every reason anything here may be refused for, and nothing outside it is a
-#: reason :func:`refuse` will accept. The three groups are the three things
-#: that read a record: the parser reads one string, the loader reads one
-#: document, the index reads the set. The tuple is written to be added to.
-REASONS: tuple[str, ...] = PARSER_REASONS + LOADER_REASONS + CATALOGUE_REASONS
+#: reason :func:`refuse` will accept. The groups are what does the reading: the
+#: parser reads one string, the loader reads one document, the index reads the
+#: set of records, and the curvature reads none of them and refuses about the
+#: arithmetic instead. The tuple is written to be added to.
+REASONS: tuple[str, ...] = (
+    PARSER_REASONS + LOADER_REASONS + CATALOGUE_REASONS + CURVATURE_REASONS
+)
 
 
 class Refused(Exception):
