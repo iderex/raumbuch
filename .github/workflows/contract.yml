@@ -52,6 +52,17 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Install the pinned dependencies
+        # The package stopped being pure standard library when the curvature of
+        # issue #44 gave record 0001's algebra boundary its first caller, so the
+        # modules the verb imports need what requirements.lock pins. Installed
+        # from that file with --require-hashes, which is the one install route
+        # record 0001 fixes, rather than by name here: a version written in a
+        # workflow is the second copy of a pin that the `pin` leg refuses.
+        #
+        # --user because this job is unprivileged on purpose, and HOME is set
+        # above, so the user site is under it and the steps below find it.
+        run: python3 -m pip install --user --require-hashes -r requirements.lock
       - name: Judge the contract
         run: python3 -m raumbuch gate --only headless --require headless
       - name: Run the main suite under it

@@ -12,10 +12,15 @@ name: isolation
 #
 # The container is started by hand rather than declared as the job's container,
 # because the job container is attached to a network this runner creates and
-# `--network none` cannot be asked of it. Everything the project needs is in the
-# image and on the volume, so nothing inside the container has to fetch
-# anything: the package is pure standard library and runs from `src/` per
-# record 0001.
+# `--network none` cannot be asked of it. Nothing inside the denied container
+# fetches anything: the image is pulled first, the dependencies requirements.lock
+# pins are installed first, into a directory outside the checkout that the second
+# run mounts, and the package itself runs from `src/` per record 0001.
+#
+# It was pure standard library until the curvature of issue #44 gave record
+# 0001's algebra boundary its first caller. The install below is what replaced
+# that sentence, and it happens in the same image as the run, so what is
+# installed is built for the interpreter that imports it.
 #
 # The gate verb is asked for the `network` leg and required to run it. The leg
 # establishes that there is no route, runs a fixture that tries to open a
@@ -58,6 +63,25 @@ jobs:
         # issue #27, and this is one of the places it will reach.
         run: docker pull python:3
 
+      - name: Install what the lock pins, which is the other thing that reaches out
+        # In the same image as the run below, so a compiled distribution is
+        # built for the interpreter that will import it. The target is outside
+        # the checkout: a directory of somebody else's files inside the tree
+        # would be judged by the legs the suite runs over that tree.
+        #
+        # This one runs as root, which is the default user of the image, and the
+        # denied run below stays unprivileged and only reads what this wrote.
+        # Read-only is all it needs, and an unprivileged writer would need the
+        # runner to hand it a writable directory first.
+        run: |
+          mkdir -p "$RUNNER_TEMP/dependencies"
+          docker run --rm \
+            --volume "$PWD:/raumbuch" --workdir /raumbuch \
+            --volume "$RUNNER_TEMP/dependencies:/dependencies" \
+            --env PYTHONUSERBASE=/dependencies \
+            python:3 python3 -m pip install --user --require-hashes \
+            -r requirements.lock
+
       - name: Run the suite in a namespace with no route out of it
         # --network none is the denial. --user keeps the run unprivileged, which
         # is the contract the `headless` leg judges and which the suite asserts
@@ -67,5 +91,7 @@ jobs:
           docker run --rm --network none \
             --user 1001:1001 \
             --volume "$PWD:/raumbuch" --workdir /raumbuch \
+            --volume "$RUNNER_TEMP/dependencies:/dependencies:ro" \
             --env PYTHONPATH=src --env HOME=/tmp \
+            --env PYTHONUSERBASE=/dependencies \
             python:3 python3 -m raumbuch gate --only network --require network
