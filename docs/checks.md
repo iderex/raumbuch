@@ -23,6 +23,7 @@ two half-lists. A row is added when its check exists, never in advance of one.
 | `hook` | a `.githooks/pre-push` carrying any instruction besides the gate invocation | the `gate` workflow, and the pre-push hook |
 | `records` | a decision record departing from the shape record 0000 fixes, and an index that misses one or points at one that is not there | the `Decision records are well formed` job of the `records` workflow, and the pre-push hook |
 | `index` | a catalogue spending one id on two records, a supersession pointing at nothing or written from one end, and a correction list that does not run to its record's version | the `gate` workflow, and the pre-push hook |
+| `schema` | a record that is not the shape `schema/record-<version>.schema.json` fixes, and a record naming a version this tree carries no schema for | the `Record schema validation` job of the `schema` workflow, and the pre-push hook |
 | `pin` | an interpreter or a distribution whose version is not held in one file, a lockfile that disagrees with the manifest, and a version literal in a workflow | the `toolchain pin` job of the `pin` workflow, and the pre-push hook |
 | `format` | a tree the formatter would change | the `format` job of the `style` workflow, and the pre-push hook |
 | `lint` | a finding against the rule set in `pyproject.toml` | the `lint` job of the `style` workflow, and the pre-push hook |
@@ -66,6 +67,16 @@ is what makes it readable, so a rule that deleted it would cost the reader the
 supply-chain half of the same decision. The pattern is three parts for a
 neighbouring reason: a two-part number reaches a standard's identifier in a
 comment, which is not a version of anything this file pins.
+
+**The manifest carries four names it does not directly need, and issue #135
+holds the repair.** The comparison above is between two sets of names, which
+assumes every locked distribution is one somebody declared. That held while
+every dependency here was a single binary with nothing under it. `jsonschema`,
+which the `schema` leg applies, requires four further distributions, and what
+landed is those four written into the `schema` extra of `pyproject.toml` so the
+sets agree. It fails closed in both directions, so the drift is visible rather
+than silent, and it asks the manifest to carry a resolver's output. The repair
+reads uv's own `# via` lines in the lock instead.
 
 The workflow auditor's version sits in the lockfile with everything else, and
 the workflow that runs it reads it out of that file. Whether a tool used only by
@@ -187,6 +198,48 @@ entry 10 of issue #2 and is open.
 The count is printed including where it is zero. The catalogue holds no entry
 until issue #73 lands, and a leg reporting that every record is sound over no
 records would be a claim about a set nobody looked at.
+
+## The published schema, and which one a record is read under
+
+`schema/record-1.schema.json` is what a consumer downloads and validates
+against. A schema nothing in this repository applies is a promise about records
+this repository never checked, and until the `schema` leg landed the only route
+that applied it was the command in `docs/record-format.md`, run by hand.
+
+**The version selects the schema, and never the other way round.** Record 0003
+makes a second format a second file rather than a widening of the first, so the
+leg reads `schema_version` out of each record and looks for
+`schema/record-<version>.schema.json`. Validating every record against whichever
+schema is newest is invisible until the second version exists and then
+invalidates the whole catalogue at once. A record naming a version this tree
+carries no schema for is refused, with the version it found and the versions
+there are, which is the failure that otherwise surfaces as a confusing error
+three modules deeper.
+
+Every record is judged rather than the first one that fails, because a run that
+stopped at the first would report one fault where a change broke forty, and the
+count is what makes the report a reading of the whole set.
+
+**What a green run says is that a shape held, which is narrower than a valid
+record, and the report says so in its own words.** A schema sees one document
+and sees no other file. The id matching the filename stem, two records sharing
+an id, an undeclared identifier inside an expression, a duplicate or transposed
+metric component, and a stratum or chart named by a value and not declared are
+none of them decidable from one document: they are the loader's, and the
+cross-record half is the `index` leg's. A leg that ran the schema and reported
+that every record is valid would be making a claim several times wider than
+what it checked.
+
+The schema is knowingly weaker than records 0005 and 0006 in the four places
+`docs/record-format.md` lists. Issue #107 settled those in the documents rather
+than in the file, so this check passing does not mean a record is complete, and
+the wording of what it prints does not suggest it does.
+
+The validator is `jsonschema`, from `requirements.lock` like every other tool. A
+leg whose tool is absent reports that it did not run and what running it costs;
+it does not pass. The job asks for the leg with `--require schema`, so an
+install that left the validator out reddens rather than passing over a set
+nothing read.
 
 ## The build, in a language with no compiler
 
@@ -527,8 +580,9 @@ and a leg nobody asked for are four different lines, so a run covering part of t
 set cannot be read as a run that covered all of it.
 
 A leg whose tool is not installed reports that it did not run and what running it
-would cost. It does not pass. The `format` and `lint` legs are the two that can
-say this today, because ruff comes from the lockfile:
+would cost. It does not pass. Three legs can say this today, because their tools
+come from the lockfile: `format` and `lint`, which are ruff, and `schema`, which
+is the JSON Schema validator.
 
     python3 -m pip install --require-hashes -r requirements.lock
 
