@@ -25,6 +25,16 @@ ROOT = Path(__file__).resolve().parents[1]
 
 VALID = base64.b64decode(catalogue_corpus.KERR)
 
+#: Every fixture below needs the validator, and two jobs run this suite in a
+#: container that has it: the `No network in the test suite` job fetches nothing
+#: on purpose, and the `Headless and unprivileged test contract` job installs
+#: nothing. So these skip there rather than failing, and the skip says what it
+#: costs. `TheLegWithoutItsTool` is the class that runs in both places.
+NEEDS_VALIDATOR = unittest.skipUnless(
+    schema.installed(),
+    f"{schema.TOOL} is not installed here; running these costs {schema.INSTALL}",
+)
+
 
 def changed(*substitutions: tuple[str, str]) -> bytes:
     data = VALID
@@ -46,6 +56,7 @@ def tree(root: Path, records: dict[str, bytes], schemas: bool = True) -> None:
         (root / schema.DIRECTORY / path.name).write_bytes(path.read_bytes())
 
 
+@NEEDS_VALIDATOR
 class TheVersionSelectsTheSchema(unittest.TestCase):
     def test_the_versions_this_tree_carries_are_read_off_the_filenames(self) -> None:
         found = schema.available(ROOT / schema.DIRECTORY)
@@ -79,6 +90,7 @@ class TheVersionSelectsTheSchema(unittest.TestCase):
         self.assertIn("declares no schema_version", verdict.detail)
 
 
+@NEEDS_VALIDATOR
 class TheLegRefusesAShapeTheSchemaRejects(unittest.TestCase):
     def test_a_signature_that_is_not_a_sign_string(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -131,6 +143,7 @@ class TheLegRefusesAShapeTheSchemaRejects(unittest.TestCase):
         self.assertIn("kerr-newman.toml", verdict.detail)
 
 
+@NEEDS_VALIDATOR
 class TheLegFailsClosed(unittest.TestCase):
     def test_a_tree_carrying_no_schema(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -141,6 +154,7 @@ class TheLegFailsClosed(unittest.TestCase):
         self.assertIn("fails closed", verdict.detail)
 
 
+@NEEDS_VALIDATOR
 class TheLegPasses(unittest.TestCase):
     def test_a_record_of_the_shape_the_schema_fixes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -171,7 +185,30 @@ class TheLegPasses(unittest.TestCase):
         self.assertIn("A shape is not a whole record", verdict.detail)
 
 
+class TheLegWithoutItsTool(unittest.TestCase):
+    """A leg whose tool is absent does not pass, and says what running it costs.
+
+    This is the one class here that runs everywhere, because it is the one that
+    does not need the validator. It is also the branch two of this project's own
+    jobs take, so an accounting that read an absent tool as a clean tree would
+    be read as clean by them.
+    """
+
+    def test_it_reports_that_it_did_not_run(self) -> None:
+        original = schema.installed
+        schema.installed = lambda: False
+        try:
+            verdict = schema.run(ROOT)
+        finally:
+            schema.installed = original
+        self.assertEqual(verdict.state, "not run")
+        self.assertIn(schema.TOOL, verdict.detail)
+        self.assertIn(schema.INSTALL, verdict.detail)
+
+
 class TheSchemaInThisTreeIsReadable(unittest.TestCase):
+    """No validator needed: this reads the file, so it runs wherever the suite does."""
+
     def test_it_parses_and_declares_the_version_its_filename_carries(self) -> None:
         for version, path in schema.available(ROOT / schema.DIRECTORY).items():
             with self.subTest(version=version):

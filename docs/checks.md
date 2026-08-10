@@ -241,6 +241,15 @@ it does not pass. The job asks for the leg with `--require schema`, so an
 install that left the validator out reddens rather than passing over a set
 nothing read.
 
+**Two of this project's own jobs run the suite where the validator is not, and
+the fixtures for this leg skip there.** The `No network in the test suite` job
+fetches nothing on purpose, and the `Headless and unprivileged test contract`
+job installs nothing, so both run a bare image against a package that is pure
+standard library. The fixtures that need a validator are skipped rather than
+failed, the run prints the count it skipped, and the one test that covers the
+absent-tool branch runs in both places. So a green run of either of those two
+jobs is not evidence that this leg refuses anything.
+
 ## The build, in a language with no compiler
 
 Record 0001 chose Python and said what follows: where this project wants a
