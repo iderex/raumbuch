@@ -6,6 +6,6 @@ One solution record per file, in the format record 0003 fixes and the schema at
 There are no entries here. The first one, end to end, is issue #73, and the nine
 after it are issue #74. The procedure for adding one is issue #76.
 
-This file is here because the directory is part of the layout record 0001 fixes,
-and git records no empty directory. It says what belongs here and it is not an
+Record 0001 fixes the layout, git records no empty directory, and this file is
+what keeps the directory in the tree until the first entry arrives. It is not an
 entry.
